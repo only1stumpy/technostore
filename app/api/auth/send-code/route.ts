@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { normalizePhone, validatePhone, generateSMSCode } from '@/lib/utils';
+import { normalizePhone, validatePhone } from '@/lib/utils';
 import { redis } from '@/lib/redis';
-import { sendSMS } from '@/services/sms';
+import { smsService } from '@/services/sms';
 
 const sendCodeSchema = z.object({
   phone: z.string().min(1, 'Телефон обязателен'),
@@ -23,13 +23,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate 6-digit code
-    const code = generateSMSCode();
+    const { code } = smsService.generateVerificationCode();
 
     // Save code to Redis with 10 minute TTL
+    if (!redis) {
+      return NextResponse.json(
+        { error: 'Redis не настроен' },
+        { status: 500 }
+      );
+    }
     await redis.set(`sms:${normalizedPhone}`, code, { ex: 600 });
 
     // Send SMS
-    const result = await sendSMS(normalizedPhone, `Ваш код подтверждения: ${code}`);
+    const result = await smsService.sendVerificationCode(normalizedPhone, code);
 
     if (!result.success) {
       return NextResponse.json(
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       );
     }

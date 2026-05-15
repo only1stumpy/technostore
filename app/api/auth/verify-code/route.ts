@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get code from Redis
+    if (!redis) {
+      return NextResponse.json(
+        { error: 'Redis не настроен' },
+        { status: 500 }
+      );
+    }
     const savedCode = await redis.get<string>(`sms:${normalizedPhone}`);
 
     if (!savedCode) {
@@ -90,7 +96,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       );
     }

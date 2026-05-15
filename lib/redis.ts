@@ -1,15 +1,21 @@
 import { Redis } from '@upstash/redis';
 
-if (!process.env.REDIS_URL || !process.env.REDIS_TOKEN) {
-  throw new Error('REDIS_URL and REDIS_TOKEN must be defined in environment variables');
+const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL;
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.REDIS_TOKEN;
+
+if (!REDIS_URL || !REDIS_TOKEN) {
+  console.warn('⚠️  Redis credentials not configured. Using mock mode.');
 }
 
-export const redis = new Redis({
-  url: process.env.REDIS_URL,
-  token: process.env.REDIS_TOKEN,
-});
+export const redis = REDIS_URL && REDIS_TOKEN
+  ? new Redis({
+      url: REDIS_URL,
+      token: REDIS_TOKEN,
+    })
+  : null;
 
 export async function getCached<T>(key: string): Promise<T | null> {
+  if (!redis) return null;
   try {
     const cached = await redis.get<T>(key);
     return cached;
@@ -20,6 +26,7 @@ export async function getCached<T>(key: string): Promise<T | null> {
 }
 
 export async function setCache<T>(key: string, value: T, ttl: number): Promise<void> {
+  if (!redis) return;
   try {
     await redis.set(key, value, { ex: ttl });
   } catch (error) {
@@ -28,6 +35,7 @@ export async function setCache<T>(key: string, value: T, ttl: number): Promise<v
 }
 
 export async function deleteCache(key: string): Promise<void> {
+  if (!redis) return;
   try {
     await redis.del(key);
   } catch (error) {
@@ -36,6 +44,7 @@ export async function deleteCache(key: string): Promise<void> {
 }
 
 export async function deleteCachePattern(pattern: string): Promise<void> {
+  if (!redis) return;
   try {
     const keys = await redis.keys(pattern);
     if (keys.length > 0) {
