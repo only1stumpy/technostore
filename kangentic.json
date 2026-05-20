@@ -43,9 +43,11 @@
       "name": "Code-rewiew Planner",
       "icon": "bell-plus",
       "autoSpawn": true,
+      "permissionMode": "plan",
       "autoCommand": "Изучи код-ревью \"{{title}}\".\nСоставь детальный план реализации исправлений. Не пиши код. Только план.",
       "modelOverride": "Orchestrator",
-      "handoffContext": true
+      "handoffContext": true,
+      "planExitTarget": "Code-rewiew Executor"
     },
     {
       "id": "a5869123-88fd-4d80-80ef-cf835fc0c3e2",

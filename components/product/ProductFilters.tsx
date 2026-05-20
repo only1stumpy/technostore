@@ -1,13 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import type { CategoryTree, Brand } from '@/types/api';
+import type { Brand } from '@/types/api';
 
 interface ProductFiltersProps {
   filters?: FilterState;
   onFilterChange: (filters: FilterState) => void;
-  activeCategorySlug?: string;
 }
 
 export interface FilterState {
@@ -20,8 +18,7 @@ export interface FilterState {
   sortOrder: 'asc' | 'desc';
 }
 
-export function ProductFilters({ filters, onFilterChange, activeCategorySlug }: ProductFiltersProps) {
-  const [categories, setCategories] = useState<CategoryTree[]>([]);
+export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [localFilters, setLocalFilters] = useState<FilterState>({
@@ -29,7 +26,6 @@ export function ProductFilters({ filters, onFilterChange, activeCategorySlug }: 
     sortOrder: 'desc',
   });
   const [expandedSections, setExpandedSections] = useState({
-    category: true,
     brand: true,
     price: true,
     stock: true,
@@ -37,23 +33,15 @@ export function ProductFilters({ filters, onFilterChange, activeCategorySlug }: 
   });
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/categories').then((r) => {
-        if (!r.ok) throw new Error('Не удалось загрузить категории');
-        return r.json();
-      }),
-      fetch('/api/brands').then((r) => {
-        if (!r.ok) throw new Error('Не удалось загрузить бренды');
-        return r.json();
-      }),
-    ]).then(([cats, brds]) => {
-      setCategories(Array.isArray(cats) ? cats : []);
+    fetch('/api/brands').then((r) => {
+      if (!r.ok) throw new Error('Не удалось загрузить бренды');
+      return r.json();
+    }).then((brds) => {
       setBrands(Array.isArray(brds) ? brds : []);
       setError(null);
     }).catch((error) => {
       console.error('Не удалось загрузить фильтры:', error);
       setError('Не удалось загрузить фильтры. Обновите страницу.');
-      setCategories([]);
       setBrands([]);
     });
   }, []);
@@ -72,26 +60,8 @@ export function ProductFilters({ filters, onFilterChange, activeCategorySlug }: 
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const renderCategory = (cat: CategoryTree, level = 0) => {
-    const isActive = cat.slug === activeCategorySlug;
-
-    return (
-      <div key={cat.id}>
-        <Link
-          href={`/category/${cat.slug}`}
-          className={`block py-1.5 text-sm transition-colors ${
-            isActive ? 'font-semibold text-red-600' : 'text-gray-700 hover:text-red-600'
-          } ${level > 0 ? 'pl-4' : ''}`}
-        >
-          {cat.name} ({cat.productCount})
-        </Link>
-        {cat.children?.map((child) => renderCategory(child, level + 1))}
-      </div>
-    );
-  };
-
   return (
-    <div className="w-64 bg-white border-r border-gray-200 p-6 space-y-6 overflow-y-auto">
+    <div className="w-full bg-white border-r border-gray-200 p-6 space-y-6 overflow-y-auto">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
           {error}
@@ -99,27 +69,6 @@ export function ProductFilters({ filters, onFilterChange, activeCategorySlug }: 
       )}
 
       <div>
-        <button
-          onClick={() => toggleSection('category')}
-          className="flex items-center justify-between w-full font-bold text-lg mb-3"
-        >
-          <span>Категории</span>
-          <span className="text-gray-400">{expandedSections.category ? '−' : '+'}</span>
-        </button>
-        {expandedSections.category && (
-          <div className="space-y-1">
-            <Link
-              href="/catalog"
-              className="block py-1.5 text-sm text-gray-700 hover:text-red-600 transition-colors"
-            >
-              Все товары
-            </Link>
-            {categories.map((cat) => renderCategory(cat))}
-          </div>
-        )}
-      </div>
-
-      <div className="border-t border-gray-200 pt-6">
         <button
           onClick={() => toggleSection('brand')}
           className="flex items-center justify-between w-full font-bold text-lg mb-3"

@@ -210,7 +210,6 @@ export default function CategoryPage({ params }: CategoryPageProps) {
           <ProductFilters
             filters={filters}
             onFilterChange={handleFilterChange}
-            activeCategorySlug={slug}
           />
         </div>
         <div className="lg:w-3/4">
