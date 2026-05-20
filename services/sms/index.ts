@@ -1,13 +1,14 @@
+import { randomInt } from 'crypto';
 import type { SmsProvider, SmsVerificationCode } from '@/types/sms';
 import { MockSmsProvider } from './providers/mock';
 import { MessaggioSmsProvider } from './providers/messaggio';
 import { BudgetSmsSmsProvider } from './providers/budgetsms';
 
-class SmsService {
+export class SmsService {
   private provider: SmsProvider;
 
-  constructor() {
-    this.provider = this.initializeProvider();
+  constructor(provider?: SmsProvider) {
+    this.provider = provider || this.initializeProvider();
   }
 
   private initializeProvider(): SmsProvider {
@@ -37,8 +38,8 @@ class SmsService {
   }
 
   generateVerificationCode(): SmsVerificationCode {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const code = randomInt(100000, 1000000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     return { code, expiresAt };
   }
@@ -49,7 +50,7 @@ class SmsService {
     const result = await this.provider.sendSms(phone, message);
 
     if (!result.success) {
-      console.error('❌ Failed to send SMS:', result.error);
+      console.error('Failed to send SMS:', result.error || 'Unknown error');
     }
 
     return {
@@ -62,7 +63,7 @@ class SmsService {
     const result = await this.provider.sendSms(phone, message);
 
     if (!result.success) {
-      console.error('❌ Failed to send SMS:', result.error);
+      console.error('Failed to send SMS:', result.error || 'Unknown error');
     }
 
     return {

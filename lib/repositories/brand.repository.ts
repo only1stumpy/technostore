@@ -1,0 +1,46 @@
+import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import type { Brand } from '@/types/api';
+import type { IBrandRepository } from './interfaces';
+
+export class BrandRepository implements IBrandRepository {
+  constructor(private prismaClient: PrismaClient = prisma) {}
+
+  async findAll(): Promise<Brand[]> {
+    const result = await this.prismaClient.brand.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: {
+          select: {
+            products: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return result.map((brand) => ({
+      id: brand.id,
+      name: brand.name,
+      slug: brand.slug,
+      productCount: brand._count.products,
+    }));
+  }
+}
+
+export const brandRepository = new BrandRepository();
+
+export function createBrandRepository(prismaClient: PrismaClient = prisma): IBrandRepository {
+  return new BrandRepository(prismaClient);
+}

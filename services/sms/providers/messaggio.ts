@@ -24,10 +24,9 @@ export class MessaggioSmsProvider implements SmsProvider {
       });
 
       if (!response.ok) {
-        const error = await response.text();
         return {
           success: false,
-          error: `Messaggio API error: ${error}`,
+          error: `Messaggio API error: ${response.status} ${response.statusText}`,
         };
       }
 

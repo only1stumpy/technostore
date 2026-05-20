@@ -24,10 +24,9 @@ export class BudgetSmsSmsProvider implements SmsProvider {
       });
 
       if (!response.ok) {
-        const error = await response.text();
         return {
           success: false,
-          error: `BudgetSMS API error: ${error}`,
+          error: `BudgetSMS API error: ${response.status} ${response.statusText}`,
         };
       }
 

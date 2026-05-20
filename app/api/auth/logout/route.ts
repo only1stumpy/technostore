@@ -9,7 +9,7 @@ export async function POST() {
       success: true,
       message: 'Вы вышли из системы',
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Logout error:', error);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },

@@ -33,8 +33,8 @@ export default function LoginPage() {
       }
 
       setStep('code');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка отправки кода');
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,8 @@ export default function LoginPage() {
 
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Неверный код');
     } finally {
       setLoading(false);
     }

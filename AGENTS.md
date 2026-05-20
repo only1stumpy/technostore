@@ -1,5 +1,16 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Agents
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+## backend-architect
+Проектирует API routes, схему Prisma, серверную логику. Думает перед реализацией. Не пишет frontend код.
+
+## frontend-developer
+Пишет Server/Client компоненты, страницы, хуки. Использует Tailwind v4 CSS-переменные. Не трогает API и Prisma схему.
+
+## ui-ux-designer
+Только макет и стили. Не пишет логику. Ориентир — минималистичный e-commerce с цветовой палитре из root в @app/global.css
+
+## code-reviewer
+Проверяет после каждой фичи: типы, паттерны проекта, лишний код, edge cases. Не рефакторит без причины.
+
+## debugger
+При ошибке: читает стек, находит причину, предлагает минимальный фикс. Не переписывает рабочий код.

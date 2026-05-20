@@ -1,0 +1,106 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { notFound } from 'next/navigation';
+import { ProductDetail } from '@/types/api';
+import { ProductGallery } from '@/components/product/ProductGallery';
+import { ProductSpecs } from '@/components/product/ProductSpecs';
+import { Container } from '@/components/layout/Container';
+import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
+
+interface ProductPageProps {
+  params: { id: string };
+}
+
+export default function ProductPage({ params }: ProductPageProps) {
+  const { id } = params;
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/products/${id}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            notFound();
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch product');
+        }
+        const data = await response.json();
+        setProduct(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Container className="py-12 text-center">
+        <Spinner size="lg" />
+        <p className="mt-4 text-[#666666]">Загрузка товара...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="py-12 text-center text-[#ef4444]">
+        <p>Ошибка: {error}</p>
+      </Container>
+    );
+  }
+
+  if (!product) {
+    notFound();
+  }
+
+  return (
+    <Container className="py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Product Gallery */}
+        <div className="lg:col-span-1">
+          <ProductGallery images={product.images} productName={product.name} />
+        </div>
+
+        {/* Product Details */}
+        <div className="lg:col-span-1 space-y-6">
+          <h1 className="text-4xl font-bold text-[#1a1a1a] uppercase tracking-tight">
+            {product.name}
+          </h1>
+          <p className="text-3xl font-bold text-[#ff0000]">
+            {product.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
+          </p>
+
+          {product.description && (
+            <div className="text-[#1a1a1a]">
+              <h2 className="text-xl font-bold uppercase tracking-tight mb-2">Описание</h2>
+              <p>{product.description}</p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4">
+            {product.stock > 0 ? (
+              <span className="text-[#10b981] font-medium">В наличии ({product.stock})</span>
+            ) : (
+              <span className="text-[#ef4444] font-medium">Нет в наличии</span>
+            )}
+            <Button variant="primary" disabled={product.stock === 0}>
+              Добавить в корзину
+            </Button>
+          </div>
+
+          {product.specs && <ProductSpecs specs={product.specs} />}
+        </div>
+      </div>
+    </Container>
+  );
+}

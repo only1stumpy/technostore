@@ -33,29 +33,39 @@ model User {
 
   cart   Cart?
   orders Order[]
-
-  @@index([phone])
 }
 
 model Category {
   id       String    @id @default(cuid())
   name     String
   slug     String    @unique
+  parentId String?
+  deletedAt DateTime?
   products Product[]
+  parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToCategory")
 
   @@index([slug])
+  @@index([parentId])
+  @@index([deletedAt])
 }
 
 model Brand {
-  id       String    @id @default(cuid())
-  name     String
-  logo     String?
-  products Product[]
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  logo      String?
+  deletedAt DateTime?
+  products  Product[]
+
+  @@index([slug])
+  @@index([deletedAt])
 }
 
 model Product {
   id          String    @id @default(cuid())
   name        String
+  slug        String    @unique
   description String?
   price       Decimal   @db.Decimal(10, 2)
   stock       Int       @default(0)
@@ -75,6 +85,13 @@ model Product {
   @@index([categoryId])
   @@index([brandId])
   @@index([deletedAt])
+  @@index([slug])
+  @@index([price])
+  @@index([stock])
+  @@index([createdAt])
+  @@index([price, createdAt])
+  @@index([name])
+  @@index([name, id])
 }
 
 model Cart {

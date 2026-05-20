@@ -1,18 +1,15 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import type { JWTPayload } from '@/types/api';
+import { UnauthorizedError, ForbiddenError } from './errors';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+const JWT_SECRET_STRING = process.env.JWT_SECRET;
+if (!JWT_SECRET_STRING) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 const JWT_COOKIE_NAME = 'auth-token';
-
-export interface JWTPayload {
-  userId: string;
-  phone: string;
-  role: 'USER' | 'ADMIN';
-  [key: string]: unknown;
-}
 
 export async function createToken(payload: JWTPayload): Promise<string> {
   const token = await new SignJWT(payload)
@@ -38,8 +35,8 @@ export async function setAuthCookie(token: string): Promise<void> {
   cookieStore.set(JWT_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
   });
 }
@@ -65,7 +62,7 @@ export async function getCurrentUser(): Promise<JWTPayload | null> {
 export async function requireAuth(): Promise<JWTPayload> {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError();
   }
   return user;
 }
@@ -73,7 +70,7 @@ export async function requireAuth(): Promise<JWTPayload> {
 export async function requireAdmin(): Promise<JWTPayload> {
   const user = await requireAuth();
   if (user.role !== 'ADMIN') {
-    throw new Error('Forbidden: Admin access required');
+    throw new ForbiddenError('Admin access required');
   }
   return user;
 }

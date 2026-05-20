@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "columns": [
+    {
+      "id": "166a2718-2ae7-47bd-ae04-76c48035fe0e",
+      "name": "To Do",
+      "role": "todo",
+      "icon": "layers",
+      "color": "#6b7280"
+    },
+    {
+      "id": "6d617d62-08f9-433e-9b16-1ed6afa6a56d",
+      "name": "Planning",
+      "icon": "map",
+      "color": "#8b5cf6",
+      "autoSpawn": true,
+      "permissionMode": "plan",
+      "autoCommand": "Изучи задачу \"{{title}}\": {{description}}\nСоставь детальный план реализации. Не пиши код. Только план.",
+      "modelOverride": "Orchestrator",
+      "planExitTarget": "Executing"
+    },
+    {
+      "id": "02c57a53-3587-41c5-84be-9bdf7cfbe135",
+      "name": "Executing",
+      "icon": "square-terminal",
+      "autoSpawn": true,
+      "autoCommand": "Выполни план для задачи \"{{title}}\".\nСледуй паттернам проекта. Редактируй существующие файлы. Не делай git commit.",
+      "modelOverride": "Executor",
+      "handoffContext": true
+    },
+    {
+      "id": "468b6d8e-fd80-443e-b75e-c1de9a890dfe",
+      "name": "Code Review",
+      "icon": "code",
+      "color": "#f59e0b",
+      "autoSpawn": true,
+      "autoCommand": "Проверь код для задачи \"{{title}}\".\nНайди баги, нарушения паттернов, edge cases. Дай конкретные замечания.",
+      "modelOverride": "Orchestrator",
+      "handoffContext": true
+    },
+    {
+      "id": "f6e1fdb5-a519-4549-9a48-e6ba1d3f59da",
+      "name": "Code-rewiew Planner",
+      "icon": "bell-plus",
+      "autoSpawn": true,
+      "autoCommand": "Изучи код-ревью \"{{title}}\".\nСоставь детальный план реализации исправлений. Не пиши код. Только план.",
+      "modelOverride": "Orchestrator",
+      "handoffContext": true
+    },
+    {
+      "id": "a5869123-88fd-4d80-80ef-cf835fc0c3e2",
+      "name": "Code-rewiew Executor",
+      "icon": "bold",
+      "color": "#8b5cf6",
+      "autoSpawn": true,
+      "autoCommand": "Исправь все баги согласно плану исправления код-ревью для задачи \"{{title}}\".\nСледуй паттернам проекта. Редактируй существующие файлы. Не делай git commit.",
+      "modelOverride": "Executor"
+    },
+    {
+      "id": "13682727-0d95-46da-ad08-e0616a500a5f",
+      "name": "Done",
+      "role": "done",
+      "icon": "circle-check-big",
+      "color": "#10b981"
+    }
+  ],
+  "actions": [
+    {
+      "id": "9119faec-ae64-43a4-b9f6-1fa196a35640",
+      "name": "Kill Session",
+      "type": "kill_session",
+      "config": {}
+    },
+    {
+      "id": "601b1cf9-621e-42e8-8797-c32c8422518a",
+      "name": "Start Planning Agent",
+      "type": "spawn_agent",
+      "config": {
+        "promptTemplate": "{{task_xml}}{{attachments}}"
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "from": "*",
+      "to": "Done",
+      "actions": [
+        "Kill Session"
+      ]
+    },
+    {
+      "from": "*",
+      "to": "Planning",
+      "actions": [
+        "Kill Session",
+        "Start Planning Agent"
+      ]
+    }
+  ],
+  "_modifiedBy": "73f8c619757a"
+}

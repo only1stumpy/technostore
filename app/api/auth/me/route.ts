@@ -19,7 +19,7 @@ export async function GET() {
         role: user.role,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Get current user error:', error);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },

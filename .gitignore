@@ -50,3 +50,7 @@ CLAUDE.md
 .claude/
 .idea/
 .env*.local
+docs/
+.kangentic/
+.claude/settings.local.json
+kangentic.local.json

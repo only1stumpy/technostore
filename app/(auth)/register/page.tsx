@@ -34,8 +34,8 @@ export default function RegisterPage() {
       }
 
       setStep('code');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка отправки кода');
     } finally {
       setLoading(false);
     }
@@ -61,8 +61,8 @@ export default function RegisterPage() {
 
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Неверный код');
     } finally {
       setLoading(false);
     }
