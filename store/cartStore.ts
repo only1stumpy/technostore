@@ -3,10 +3,15 @@
 import { create } from 'zustand';
 import type { Cart } from '@/types/api';
 
+type CartRequestError = Error & {
+  code?: string;
+};
+
 type CartState = Cart & {
   isLoading: boolean;
   hasFetched: boolean;
   error: string | null;
+  errorCode: string | null;
   itemsCount: number;
   fetchCart: (options?: { silentAuth?: boolean }) => Promise<void>;
   addItem: (productId: string, quantity?: number) => Promise<boolean>;
@@ -27,14 +32,26 @@ async function parseCartResponse(response: Response): Promise<Cart> {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(json.error || 'Ошибка корзины');
+    const error = new Error(json.error || 'Ошибка корзины') as CartRequestError;
+    error.code = json.code;
+    throw error;
   }
 
   return json.data ?? initialCart;
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
+function getCartError(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      code: (error as CartRequestError).code ?? null,
+    };
+  }
+
+  return {
+    message: fallback,
+    code: null,
+  };
 }
 
 function applyCart(cart: Cart) {
@@ -44,6 +61,7 @@ function applyCart(cart: Cart) {
     isLoading: false,
     hasFetched: true,
     error: null,
+    errorCode: null,
   };
 }
 
@@ -53,31 +71,33 @@ export const useCartStore = create<CartState>((set) => ({
   isLoading: false,
   hasFetched: false,
   error: null,
+  errorCode: null,
 
   setCart: (cart) => set(applyCart(cart)),
 
   fetchCart: async (options) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
 
     try {
       const response = await fetch('/api/cart');
       const cart = await parseCartResponse(response);
       set(applyCart(cart));
     } catch (error) {
-      const message = getErrorMessage(error, 'Ошибка загрузки корзины');
-      const isUnauthorized = message === 'User not authenticated' || message === 'Не авторизован';
+      const cartError = getCartError(error, 'Ошибка загрузки корзины');
+      const isUnauthorized = cartError.code === 'UNAUTHORIZED';
       set({
         ...initialCart,
         itemsCount: 0,
         isLoading: false,
         hasFetched: true,
-        error: options?.silentAuth && isUnauthorized ? null : message,
+        error: options?.silentAuth && isUnauthorized ? null : cartError.message,
+        errorCode: options?.silentAuth && isUnauthorized ? null : cartError.code,
       });
     }
   },
 
   addItem: async (productId, quantity = 1) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
 
     try {
       const response = await fetch('/api/cart/items', {
@@ -89,13 +109,14 @@ export const useCartStore = create<CartState>((set) => ({
       set(applyCart(cart));
       return true;
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error, 'Ошибка добавления товара') });
+      const cartError = getCartError(error, 'Ошибка добавления товара');
+      set({ isLoading: false, error: cartError.message, errorCode: cartError.code });
       return false;
     }
   },
 
   updateItem: async (productId, quantity) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
 
     try {
       const response = await fetch(`/api/cart/items/${productId}`, {
@@ -107,13 +128,14 @@ export const useCartStore = create<CartState>((set) => ({
       set(applyCart(cart));
       return true;
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error, 'Ошибка изменения количества') });
+      const cartError = getCartError(error, 'Ошибка изменения количества');
+      set({ isLoading: false, error: cartError.message, errorCode: cartError.code });
       return false;
     }
   },
 
   removeItem: async (productId) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
 
     try {
       const response = await fetch(`/api/cart/items/${productId}`, {
@@ -123,13 +145,14 @@ export const useCartStore = create<CartState>((set) => ({
       set(applyCart(cart));
       return true;
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error, 'Ошибка удаления товара') });
+      const cartError = getCartError(error, 'Ошибка удаления товара');
+      set({ isLoading: false, error: cartError.message, errorCode: cartError.code });
       return false;
     }
   },
 
   clearCart: async () => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, errorCode: null });
 
     try {
       const response = await fetch('/api/cart', {
@@ -140,10 +163,11 @@ export const useCartStore = create<CartState>((set) => ({
         await parseCartResponse(response);
       }
 
-      set({ ...initialCart, itemsCount: 0, isLoading: false, hasFetched: true, error: null });
+      set({ ...initialCart, itemsCount: 0, isLoading: false, hasFetched: true, error: null, errorCode: null });
       return true;
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error, 'Ошибка очистки корзины') });
+      const cartError = getCartError(error, 'Ошибка очистки корзины');
+      set({ isLoading: false, error: cartError.message, errorCode: cartError.code });
       return false;
     }
   },

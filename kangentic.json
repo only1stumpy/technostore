@@ -34,20 +34,10 @@
       "icon": "code",
       "color": "#f59e0b",
       "autoSpawn": true,
-      "autoCommand": "Проверь код для задачи \"{{title}}\".\nНайди баги, нарушения паттернов, edge cases. Дай конкретные замечания.",
+      "permissionMode": "plan",
+      "autoCommand": "Проверь код для задачи \"{{title}}\".\nНайди баги, нарушения паттернов, edge cases. Дай конкретные замечания. Составь детальный план реализации исправлений. Не пиши код. Только план. Прошлый план не перезаписывай, пиши новый",
       "modelOverride": "Orchestrator",
       "handoffContext": true
-    },
-    {
-      "id": "f6e1fdb5-a519-4549-9a48-e6ba1d3f59da",
-      "name": "Code-rewiew Planner",
-      "icon": "bell-plus",
-      "autoSpawn": true,
-      "permissionMode": "plan",
-      "autoCommand": "Изучи код-ревью \"{{title}}\".\nСоставь детальный план реализации исправлений. Не пиши код. Только план.",
-      "modelOverride": "Orchestrator",
-      "handoffContext": true,
-      "planExitTarget": "Code-rewiew Executor"
     },
     {
       "id": "a5869123-88fd-4d80-80ef-cf835fc0c3e2",

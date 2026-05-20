@@ -1,23 +1,33 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { ProductDetail } from '@/types/api';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { ProductSpecs } from '@/components/product/ProductSpecs';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useCartStore } from '@/store/cartStore';
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
 }
 
+type CartMessage = {
+  type: 'success' | 'error';
+  text: string;
+};
+
 export default function ProductPage({ params }: ProductPageProps) {
   const { id } = use(params);
+  const router = useRouter();
+  const addItem = useCartStore((state) => state.addItem);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState<CartMessage | null>(null);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -41,6 +51,36 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
     fetchProduct();
   }, [id]);
+
+  const handleAddToCart = async () => {
+    if (!product || product.stock === 0 || isAddingToCart) return;
+
+    setCartMessage(null);
+    setIsAddingToCart(true);
+
+    try {
+      const added = await addItem(product.id, 1);
+
+      if (added) {
+        setCartMessage({ type: 'success', text: 'Товар добавлен в корзину' });
+        return;
+      }
+
+      const { error: errorMessage, errorCode } = useCartStore.getState();
+
+      if (errorCode === 'UNAUTHORIZED') {
+        router.push(`/login?redirect=/product/${product.id}`);
+        return;
+      }
+
+      setCartMessage({
+        type: 'error',
+        text: errorMessage || 'Не удалось добавить товар в корзину',
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,10 +133,21 @@ export default function ProductPage({ params }: ProductPageProps) {
             ) : (
               <span className="text-[#ef4444] font-medium">Нет в наличии</span>
             )}
-            <Button variant="primary" disabled={product.stock === 0}>
+            <Button
+              variant="primary"
+              disabled={product.stock === 0}
+              isLoading={isAddingToCart}
+              onClick={handleAddToCart}
+            >
               Добавить в корзину
             </Button>
           </div>
+
+          {cartMessage && (
+            <p className={cartMessage.type === 'success' ? 'text-[#10b981]' : 'text-[#ef4444]'}>
+              {cartMessage.text}
+            </p>
+          )}
 
           {product.specs && <ProductSpecs specs={product.specs} />}
         </div>

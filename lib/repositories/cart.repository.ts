@@ -180,7 +180,7 @@ export class CartRepository implements ICartRepository {
     });
 
     if (!cart) {
-      throw new NotFoundError('Cart not found');
+      return;
     }
 
     await this.prismaClient.cartItem.deleteMany({
