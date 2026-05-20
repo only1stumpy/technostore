@@ -2,6 +2,25 @@ import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
+const popularCategories = [
+  {
+    title: 'Ноутбуки',
+    href: '/category/laptops',
+  },
+  {
+    title: 'Смартфоны',
+    href: '/category/smartphones',
+  },
+  {
+    title: 'Планшеты',
+    href: '/category/tablets',
+  },
+  {
+    title: 'Аксессуары',
+    href: '/category/accessories',
+  },
+];
+
 export default function Home() {
   return (
     <div className="flex flex-col">
@@ -34,15 +53,19 @@ export default function Home() {
         <Container>
           <h2 className="text-4xl font-black text-center mb-12">Популярные категории</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {['Ноутбуки', 'Смартфоны', 'Планшеты', 'Аксессуары'].map((category) => (
-              <div
-                key={category}
+            {popularCategories.map((category) => (
+              <Link
+                key={category.title}
+                href={category.href}
                 className="group p-6 rounded-lg border border-border bg-background hover:border-primary transition-colors"
               >
-                <h3 className="text-2xl font-bold group-hover:text-primary transition-colors">
-                  {category}
-                </h3>
-              </div>
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-2xl font-bold group-hover:text-primary transition-colors">
+                    {category.title}
+                  </h3>
+                  <span className="text-2xl font-bold text-primary">→</span>
+                </div>
+              </Link>
             ))}
           </div>
         </Container>

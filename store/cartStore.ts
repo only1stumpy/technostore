@@ -19,6 +19,7 @@ type CartState = Cart & {
   removeItem: (productId: string) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
   setCart: (cart: Cart) => void;
+  resetCart: () => void;
 };
 
 const initialCart: Cart = {
@@ -74,6 +75,7 @@ export const useCartStore = create<CartState>((set) => ({
   errorCode: null,
 
   setCart: (cart) => set(applyCart(cart)),
+  resetCart: () => set({ ...initialCart, itemsCount: 0, isLoading: false, hasFetched: false, error: null, errorCode: null }),
 
   fetchCart: async (options) => {
     set({ isLoading: true, error: null, errorCode: null });

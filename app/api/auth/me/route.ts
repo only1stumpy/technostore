@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -12,12 +13,25 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({
-      user: {
-        id: user.userId,
-        phone: user.phone,
-        role: user.role,
+    const profile = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        role: true,
       },
+    });
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Не авторизован' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({
+      user: profile,
     });
   } catch (error: unknown) {
     console.error('Get current user error:', error);

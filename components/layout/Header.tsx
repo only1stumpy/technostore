@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CartIcon } from '@/components/cart/CartIcon';
+import { HeaderActions } from './HeaderActions';
 import { Container } from './Container';
 
 export function Header() {
@@ -39,17 +39,7 @@ export function Header() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-6">
-            <CartIcon />
-
-            <Link
-              href="/login"
-              className="text-sm font-bold uppercase tracking-tight text-white bg-primary hover:bg-primary-hover rounded-lg px-6 py-2 transition-colors"
-              style={{ fontFamily: 'var(--font-oswald)' }}
-            >
-              Войти
-            </Link>
-          </div>
+          <HeaderActions />
         </div>
       </Container>
     </header>

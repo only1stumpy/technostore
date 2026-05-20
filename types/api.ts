@@ -5,6 +5,13 @@ export interface JWTPayload {
   [key: string]: unknown;
 }
 
+export type CurrentUser = {
+  id: string;
+  phone: string;
+  name: string | null;
+  role: 'USER' | 'ADMIN';
+};
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
