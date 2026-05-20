@@ -132,3 +132,42 @@ export type Cart = {
   items: CartItem[];
   totalAmount: number;
 };
+
+export type OrderStatus = 'NEW' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+
+export type OrderItem = {
+  id: string;
+  productId: string;
+  name: string;
+  imageUrl: string | null;
+  price: number;
+  quantity: number;
+};
+
+export type OrderItemPreview = {
+  name: string;
+  quantity: number;
+};
+
+export type OrderSummary = {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  address: string;
+  phone: string;
+  comment: string | null;
+  itemsCount: number;
+  itemsPreview: OrderItemPreview[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrderDetail = OrderSummary & {
+  items: OrderItem[];
+};
+
+export type CreateOrderInput = {
+  address: string;
+  phone: string;
+  comment?: string | null;
+};

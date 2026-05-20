@@ -1,0 +1,121 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { CheckoutForm } from '@/components/order/CheckoutForm';
+import { Container } from '@/components/layout/Container';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Spinner } from '@/components/ui/Spinner';
+import { useCartStore } from '@/store/cartStore';
+import type { CurrentUser } from '@/types/api';
+
+export default function CheckoutPage() {
+  const cart = useCartStore((state) => ({
+    id: state.id,
+    userId: state.userId,
+    items: state.items,
+    totalAmount: state.totalAmount,
+  }));
+  const isLoading = useCartStore((state) => state.isLoading);
+  const hasFetched = useCartStore((state) => state.hasFetched);
+  const errorCode = useCartStore((state) => state.errorCode);
+  const fetchCart = useCartStore((state) => state.fetchCart);
+  const [phone, setPhone] = useState('');
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!hasFetched) {
+      fetchCart();
+    }
+  }, [fetchCart, hasFetched]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchProfile() {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok || !mounted) return;
+
+        const data: { user: CurrentUser } = await response.json();
+        setPhone(data.user.phone);
+      } catch {
+      } finally {
+        if (mounted) {
+          setIsProfileLoading(false);
+        }
+      }
+    }
+
+    void fetchProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const isAuthError = errorCode === 'UNAUTHORIZED';
+  const pageHeader = (
+    <div className="mb-8">
+      <h1 className="text-4xl font-black">Оформление заказа</h1>
+      <p className="mt-2 text-muted-foreground">Укажите данные доставки и подтвердите заказ</p>
+    </div>
+  );
+
+  if ((isLoading && cart.items.length === 0) || isProfileLoading) {
+    return (
+      <Container className="py-10">
+        {pageHeader}
+        <div className="flex min-h-80 items-center justify-center">
+          <Spinner className="h-8 w-8" />
+        </div>
+      </Container>
+    );
+  }
+
+  if (isAuthError) {
+    return (
+      <Container className="py-10">
+        {pageHeader}
+        <Card>
+          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-6 text-center">
+            <div>
+              <h2 className="text-2xl font-bold">Войдите, чтобы оформить заказ</h2>
+              <p className="mt-2 text-muted-foreground">Оформление заказа доступно только авторизованным пользователям</p>
+            </div>
+            <Link href="/login">
+              <Button>Войти</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
+
+  if (cart.items.length === 0) {
+    return (
+      <Container className="py-10">
+        {pageHeader}
+        <Card>
+          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-6 text-center">
+            <div>
+              <h2 className="text-2xl font-bold">Корзина пуста</h2>
+              <p className="mt-2 text-muted-foreground">Добавьте товары из каталога перед оформлением заказа</p>
+            </div>
+            <Link href="/catalog">
+              <Button>Перейти в каталог</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </Container>
+    );
+  }
+
+  return (
+    <Container className="py-10">
+      {pageHeader}
+      <CheckoutForm cart={cart} initialPhone={phone} />
+    </Container>
+  );
+}

@@ -173,6 +173,9 @@ export default function ProfilePage() {
             <Link href="/cart" className="block">
               <Button variant="secondary" className="w-full">Открыть корзину</Button>
             </Link>
+            <Link href="/orders" className="block">
+              <Button variant="secondary" className="w-full">Мои заказы</Button>
+            </Link>
             <Button
               type="button"
               variant="ghost"

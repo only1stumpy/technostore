@@ -1,4 +1,4 @@
-import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, Brand, CategoryTree, Cart } from '@/types/api';
+import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, Brand, CategoryTree, Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
 
 export interface IProductRepository {
   findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>>;
@@ -19,4 +19,10 @@ export interface ICartRepository {
   updateProductQuantity(userId: string, productId: string, quantity: number): Promise<Cart>;
   removeProductFromCart(userId: string, productId: string): Promise<Cart>;
   clearCart(userId: string): Promise<void>;
+}
+
+export interface IOrderRepository {
+  createFromCart(userId: string, input: CreateOrderInput): Promise<OrderDetail>;
+  findManyByUserId(userId: string): Promise<OrderSummary[]>;
+  findByIdForUser(userId: string, orderId: string): Promise<OrderDetail | null>;
 }
