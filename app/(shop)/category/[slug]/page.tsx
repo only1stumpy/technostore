@@ -1,20 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { notFound, useSearchParams } from 'next/navigation';
 import { ProductFiltersSchema } from '@/lib/validation/catalog';
 import { ProductGrid } from '@/components/product/ProductGrid';
-import { ProductFilters } from '@/components/product/ProductFilters';
+import { ProductFilters, type FilterState } from '@/components/product/ProductFilters';
 import { Container } from '@/components/layout/Container';
+import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { CategoryTree, ProductCard, ProductFilters as ProductFiltersType } from '@/types/api';
+import { CategoryTree, ProductCard } from '@/types/api';
 
 interface CategoryPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
-  const { slug } = params;
+  const { slug } = use(params);
   const searchParams = useSearchParams();
 
   const [category, setCategory] = useState<CategoryTree | null>(null);
@@ -23,108 +24,121 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [filters, setFilters] = useState<ProductFiltersType>({
-    limit: 24,
+  const [filters, setFilters] = useState<FilterState>({
     sortBy: 'createdAt',
     sortOrder: 'desc',
   });
 
-  useEffect(() => {
-    async function fetchCategory() {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/categories');
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-        const categories: CategoryTree[] = await response.json();
-        const foundCategory = categories.find(c => c.slug === slug);
-        if (!foundCategory) {
-          notFound();
-        }
-        setCategory(foundCategory);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const fetchCategory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
       }
+      const categories: CategoryTree[] = await response.json();
+      const foundCategory = categories.find(c => c.slug === slug);
+      if (!foundCategory) {
+        notFound();
+      }
+      setCategory(foundCategory);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch categories');
+    } finally {
+      setLoading(false);
     }
-    fetchCategory();
   }, [slug]);
 
   useEffect(() => {
+    queueMicrotask(() => {
+      void fetchCategory();
+    });
+  }, [fetchCategory]);
+
+  const fetchProducts = useCallback(async () => {
     if (!category) return;
 
+    const categoryId = category.id;
     const parsedFilters = ProductFiltersSchema.safeParse({
       ...Object.fromEntries(searchParams.entries()),
-      categoryId: category.id,
+      categoryId,
     });
 
     if (!parsedFilters.success) {
       console.error('Invalid filters from URL:', parsedFilters.error);
-      // Optionally, reset to default filters or show an error to the user
       return;
     }
 
-    setFilters(parsedFilters.data);
+    const parsedData = parsedFilters.data;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('categoryId', parsedData.categoryId ?? categoryId);
+      params.set('limit', String(parsedData.limit));
+      params.set('sortBy', parsedData.sortBy);
+      params.set('sortOrder', parsedData.sortOrder);
+      if (parsedData.cursor) params.set('cursor', parsedData.cursor);
+      if (parsedData.brandId) params.set('brandId', parsedData.brandId);
+      if (parsedData.minPrice !== undefined) params.set('minPrice', String(parsedData.minPrice));
+      if (parsedData.maxPrice !== undefined) params.set('maxPrice', String(parsedData.maxPrice));
+      if (parsedData.inStock !== undefined) params.set('inStock', String(parsedData.inStock));
+      if (parsedData.search) params.set('search', parsedData.search);
 
-    async function fetchProducts() {
-      setLoading(true);
-      try {
-        const queryString = new URLSearchParams({
-          ...parsedFilters.data as Record<string, string>,
-          limit: String(parsedFilters.data.limit),
-          sortBy: parsedFilters.data.sortBy,
-          sortOrder: parsedFilters.data.sortOrder,
-          ...(parsedFilters.data.cursor && { cursor: parsedFilters.data.cursor }),
-        }).toString();
-        const response = await fetch(`/api/products?${queryString}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch products');
-        }
-        const data = await response.json();
-        setProducts(data.data);
-        setNextCursor(data.pagination.nextCursor);
-        setHasMore(data.pagination.hasMore);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      const response = await fetch(`/api/products?${params}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch products');
       }
+      const data = await response.json();
+      setFilters(parsedData);
+      setProducts(data.data);
+      setNextCursor(data.pagination.nextCursor);
+      setHasMore(data.pagination.hasMore);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch products');
+    } finally {
+      setLoading(false);
     }
-
-    fetchProducts();
   }, [category, searchParams]);
 
-  const handleLoadMore = async () => {
-    if (!nextCursor || !hasMore) return;
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchProducts();
+    });
+  }, [fetchProducts]);
 
-    const currentFilters = { ...filters, cursor: nextCursor };
+  const handleLoadMore = async () => {
+    if (!nextCursor || !hasMore || !category) return;
+
+    const categoryId = category.id;
 
     try {
-      const queryString = new URLSearchParams({
-        ...currentFilters as Record<string, string>,
-        limit: String(currentFilters.limit),
-        sortBy: currentFilters.sortBy,
-        sortOrder: currentFilters.sortOrder,
-        ...(currentFilters.cursor && { cursor: currentFilters.cursor }),
-      }).toString();
-      const response = await fetch(`/api/products?${queryString}`);
+      const params = new URLSearchParams();
+      params.set('cursor', nextCursor);
+      params.set('categoryId', categoryId);
+      params.set('limit', '24');
+      params.set('sortBy', filters.sortBy);
+      params.set('sortOrder', filters.sortOrder);
+      if (filters.brandId) params.set('brandId', filters.brandId);
+      if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
+      if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
+      if (filters.inStock !== undefined) params.set('inStock', String(filters.inStock));
+
+      const response = await fetch(`/api/products?${params}`);
       const data = await response.json();
 
       setProducts((prev) => [...prev, ...data.data]);
       setNextCursor(data.pagination.nextCursor);
       setHasMore(data.pagination.hasMore);
-    } catch (err: any) {
-      console.error('Failed to load more products:', err.message);
+    } catch (err) {
+      console.error('Failed to load more products:', err instanceof Error ? err.message : err);
     }
   };
 
   if (loading && !category) {
     return (
       <Container className="py-12 text-center">
-        <Spinner size="lg" />
+        <Spinner className="h-8 w-8 mx-auto" />
         <p className="mt-4 text-[#666666]">Загрузка категории...</p>
       </Container>
     );
@@ -150,12 +164,12 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-1/4">
-          <ProductFilters currentFilters={filters} />
+          <ProductFilters onFilterChange={setFilters} />
         </div>
         <div className="lg:w-3/4">
           {loading && products.length === 0 ? (
             <div className="flex justify-center items-center h-64">
-              <Spinner size="lg" />
+              <Spinner className="h-8 w-8 mx-auto" />
             </div>
           ) : (
             <>

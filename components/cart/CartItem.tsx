@@ -20,30 +20,35 @@ export function CartItem({
   onRemoveItem,
   isLoading,
 }: CartItemProps) {
-  const [quantity, setQuantity] = useState(item.quantity);
   const [isUpdating, setIsUpdating] = useState(false);
+  const imageUrl = item.imageUrl?.replace(/^\//, '').startsWith('products/') ? null : item.imageUrl;
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1) return;
     setIsUpdating(true);
-    await onUpdateQuantity(item.productId, newQuantity);
-    setQuantity(newQuantity);
-    setIsUpdating(false);
+    try {
+      await onUpdateQuantity(item.productId, newQuantity);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleRemove = async () => {
     setIsUpdating(true);
-    await onRemoveItem(item.productId);
-    setIsUpdating(false);
+    try {
+      await onRemoveItem(item.productId);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
     <div className="flex items-center border-b border-[#e5e5e5] py-4 last:border-b-0">
       <Link href={`/product/${item.slug}`} className="flex-shrink-0">
         <div className="relative w-20 h-20 bg-white border border-[#e5e5e5] overflow-hidden">
-          {item.imageUrl && (
+          {imageUrl && (
             <Image
-              src={item.imageUrl}
+              src={imageUrl}
               alt={item.name}
               fill
               className="object-contain p-2"
@@ -68,16 +73,16 @@ export function CartItem({
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => handleQuantityChange(quantity - 1)}
-          disabled={isLoading || isUpdating || quantity <= 1}
+          onClick={() => handleQuantityChange(item.quantity - 1)}
+          disabled={isLoading || isUpdating || item.quantity <= 1}
         >
           -
         </Button>
-        <span className="w-8 text-center text-[#1a1a1a]">{quantity}</span>
+        <span className="w-8 text-center text-[#1a1a1a]">{item.quantity}</span>
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => handleQuantityChange(quantity + 1)}
+          onClick={() => handleQuantityChange(item.quantity + 1)}
           disabled={isLoading || isUpdating}
         >
           +
@@ -88,7 +93,7 @@ export function CartItem({
           onClick={handleRemove}
           disabled={isLoading || isUpdating}
         >
-          {isUpdating ? <Spinner size="sm" /> : 'Удалить'}
+          {isUpdating ? <Spinner className="h-4 w-4" /> : 'Удалить'}
         </Button>
       </div>
     </div>

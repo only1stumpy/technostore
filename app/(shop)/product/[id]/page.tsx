@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import { ProductDetail } from '@/types/api';
 import { ProductGallery } from '@/components/product/ProductGallery';
@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 
 interface ProductPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const { id } = params;
+  const { id } = use(params);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +33,8 @@ export default function ProductPage({ params }: ProductPageProps) {
         }
         const data = await response.json();
         setProduct(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch product');
       } finally {
         setLoading(false);
       }
@@ -45,7 +45,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   if (loading) {
     return (
       <Container className="py-12 text-center">
-        <Spinner size="lg" />
+        <Spinner className="h-8 w-8 mx-auto" />
         <p className="mt-4 text-[#666666]">Загрузка товара...</p>
       </Container>
     );

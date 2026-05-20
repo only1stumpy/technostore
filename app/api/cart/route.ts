@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { cartService } from '@/lib/services/cart.service';
-import { isAppError, UnauthorizedError, NotFoundError } from '@/lib/errors';
-import { Cart } from '@/types/api';
+import { isAppError, UnauthorizedError } from '@/lib/errors';
+import type { Cart } from '@/types/api';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -14,7 +14,13 @@ export async function GET(request: NextRequest) {
     const cart = await cartService.getCart(user.userId);
 
     if (!cart) {
-      return NextResponse.json({ success: true, data: { items: [], totalAmount: 0 } as Cart });
+      const emptyCart: Cart = {
+        id: '',
+        userId: user.userId,
+        items: [],
+        totalAmount: 0,
+      };
+      return NextResponse.json({ success: true, data: emptyCart });
     }
 
     return NextResponse.json({ success: true, data: cart });
@@ -34,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const user = await getCurrentUser();
     if (!user) {

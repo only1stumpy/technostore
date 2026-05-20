@@ -75,8 +75,8 @@ export class AuthService implements IAuthService {
       throw new InvalidCodeError('Code expired or not found');
     }
 
-    const savedBuffer = Buffer.from(savedCode);
-    const codeBuffer = Buffer.from(code);
+    const savedBuffer = Buffer.from(String(savedCode));
+    const codeBuffer = Buffer.from(String(code));
     if (savedBuffer.length !== codeBuffer.length || !timingSafeEqual(savedBuffer, codeBuffer)) {
       throw new InvalidCodeError('Invalid code');
     }

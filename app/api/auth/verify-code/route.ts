@@ -5,7 +5,7 @@ import { isAppError } from '@/lib/errors';
 
 const verifyCodeSchema = z.object({
   phone: z.string().min(1, 'Телефон обязателен'),
-  code: z.string().length(6, 'Код должен содержать 6 цифр'),
+  code: z.coerce.string().length(6, 'Код должен содержать 6 цифр'),
   name: z.string().optional(),
 });
 

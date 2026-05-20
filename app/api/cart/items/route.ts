@@ -5,7 +5,7 @@ import { cartService } from '@/lib/services/cart.service';
 import { isAppError, UnauthorizedError } from '@/lib/errors';
 
 const addItemSchema = z.object({
-  productId: z.string().uuid(),
+  productId: z.string().min(1),
   quantity: z.coerce.number().int().min(1).default(1),
 });
 

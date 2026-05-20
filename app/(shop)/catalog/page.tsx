@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductFilters, type FilterState } from '@/components/product/ProductFilters';
 import type { ProductCard, CursorPaginatedResponse } from '@/types/api';
@@ -16,12 +16,13 @@ export default function CatalogPage() {
   });
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchProducts = async (cursor?: string, reset = false) => {
+  const fetchProducts = useCallback(async (cursor?: string, reset = false) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    abortControllerRef.current = new AbortController();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -36,36 +37,36 @@ export default function CatalogPage() {
       params.set('limit', '24');
 
       const response = await fetch(`/api/products?${params}`, {
-        signal: abortControllerRef.current.signal,
+        signal: abortController.signal,
       });
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
       const data: CursorPaginatedResponse<ProductCard> = await response.json();
 
-      if (data && data.data) {
+      if (data.data) {
         setProducts(prev => reset ? data.data : [...prev, ...data.data]);
         setNextCursor(data.pagination?.nextCursor || null);
         setHasMore(data.pagination?.hasMore || false);
       }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
         console.error('Failed to fetch products:', error);
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
-    fetchProducts(undefined, true);
+    queueMicrotask(() => {
+      void fetchProducts(undefined, true);
+    });
 
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
     };
-  }, [filters]);
+  }, [fetchProducts]);
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);

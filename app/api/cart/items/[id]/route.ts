@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { cartService } from '@/lib/services/cart.service';
-import { isAppError, UnauthorizedError, NotFoundError } from '@/lib/errors';
+import { isAppError, UnauthorizedError } from '@/lib/errors';
 
 const updateItemSchema = z.object({
   quantity: z.coerce.number().int().min(0),
@@ -10,7 +10,7 @@ const updateItemSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -18,7 +18,7 @@ export async function PATCH(
       throw new UnauthorizedError('User not authenticated');
     }
 
-    const { id: productId } = params;
+    const { id: productId } = await params;
     const body = await request.json();
     const { quantity } = updateItemSchema.parse(body);
 
@@ -50,7 +50,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -58,7 +58,7 @@ export async function DELETE(
       throw new UnauthorizedError('User not authenticated');
     }
 
-    const { id: productId } = params;
+    const { id: productId } = await params;
 
     const updatedCart = await cartService.removeItem(user.userId, productId);
 

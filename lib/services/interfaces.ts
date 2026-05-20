@@ -1,3 +1,5 @@
+import type { Cart } from '@/types/api';
+
 export interface IAuthService {
   sendVerificationCode(phone: string): Promise<void>;
   verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{

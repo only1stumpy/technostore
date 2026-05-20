@@ -46,7 +46,7 @@ export type ProductDetail = {
   price: number;
   stock: number;
   images: string[];
-  specs: Record<string, any> | null;
+  specs: Record<string, unknown> | null;
   brand: {
     id: string;
     name: string;

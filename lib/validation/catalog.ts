@@ -6,8 +6,8 @@ export const ProductFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(24),
 
   // Filters
-  categoryId: z.string().uuid().optional(),
-  brandId: z.string().uuid().optional(),
+  categoryId: z.string().min(1).optional(),
+  brandId: z.string().min(1).optional(),
   minPrice: z.coerce.number().nonnegative().optional(),
   maxPrice: z.coerce.number().nonnegative().optional(),
   inStock: z.coerce.boolean().optional(),
@@ -22,7 +22,7 @@ export const ProductFiltersSchema = z.object({
 );
 
 export const ProductIdSchema = z.object({
-  id: z.string().uuid()
+  id: z.string().min(1)
 });
 
 export type ProductFilters = z.infer<typeof ProductFiltersSchema>;

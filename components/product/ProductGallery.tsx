@@ -9,9 +9,10 @@ interface ProductGalleryProps {
 }
 
 export function ProductGallery({ images, productName }: ProductGalleryProps) {
+  const availableImages = images.filter((image) => !image.replace(/^\//, '').startsWith('products/'));
   const [selectedImage, setSelectedImage] = useState(0);
 
-  if (!images || images.length === 0) {
+  if (availableImages.length === 0) {
     return (
       <div className="w-full aspect-square bg-[#f5f5f5] flex items-center justify-center">
         <span className="text-[#666666]">Нет изображений</span>
@@ -24,7 +25,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       {/* Main image */}
       <div className="relative w-full aspect-square bg-white border-2 border-[#e5e5e5] overflow-hidden">
         <Image
-          src={images[selectedImage]}
+          src={availableImages[selectedImage]}
           alt={`${productName} - изображение ${selectedImage + 1}`}
           fill
           className="object-contain p-4"
@@ -33,9 +34,9 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {availableImages.length > 1 && (
         <div className="grid grid-cols-4 gap-2">
-          {images.map((image, index) => (
+          {availableImages.map((image, index) => (
             <button
               key={index}
               onClick={() => setSelectedImage(index)}

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       sortOrder: searchParams.get('sortOrder') || undefined,
     });
 
-    if (!ALLOWED_SORT_FIELDS.includes(filters.sortBy as any)) {
+    if (!ALLOWED_SORT_FIELDS.includes(filters.sortBy)) {
       return NextResponse.json(
         { error: 'Invalid sort field' },
         { status: 400 }

@@ -1,4 +1,4 @@
-import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, Brand, CategoryTree } from '@/types/api';
+import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, Brand, CategoryTree, Cart } from '@/types/api';
 
 export interface IProductRepository {
   findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>>;

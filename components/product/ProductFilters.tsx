@@ -55,7 +55,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     });
   }, []);
 
-  const updateFilter = (key: keyof FilterState, value: any) => {
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFilterChange(newFilters);
@@ -234,7 +234,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
           <div className="space-y-2">
             <select
               value={filters.sortBy}
-              onChange={(e) => updateFilter('sortBy', e.target.value)}
+              onChange={(e) => updateFilter('sortBy', e.target.value as FilterState['sortBy'])}
               className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
             >
               <option value="createdAt">Newest</option>
@@ -243,7 +243,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             </select>
             <select
               value={filters.sortOrder}
-              onChange={(e) => updateFilter('sortOrder', e.target.value)}
+              onChange={(e) => updateFilter('sortOrder', e.target.value as FilterState['sortOrder'])}
               className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
             >
               <option value="desc">Descending</option>

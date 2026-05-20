@@ -1,6 +1,6 @@
-import { Cart, CartItem } from '@/types/api';
+import { Cart } from '@/types/api';
 import { ICartRepository } from '@/lib/repositories/interfaces';
-import { createCartRepository, cartRepository } from '@/lib/repositories/cart.repository';
+import { cartRepository } from '@/lib/repositories/cart.repository';
 import { ICartService } from './interfaces';
 
 export class CartService implements ICartService {

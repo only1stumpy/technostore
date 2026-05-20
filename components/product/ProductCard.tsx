@@ -9,6 +9,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const inStock = product.stock > 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
+  const imageUrl = product.imageUrl?.replace(/^\//, '').startsWith('products/') ? null : product.imageUrl;
 
   return (
     <Link
@@ -17,9 +18,9 @@ export function ProductCard({ product }: ProductCardProps) {
       aria-label={`View ${product.name} by ${product.brand.name}`}
     >
       <div className="aspect-square relative bg-gray-50 overflow-hidden">
-        {product.imageUrl ? (
+        {imageUrl ? (
           <Image
-            src={product.imageUrl}
+            src={imageUrl}
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
