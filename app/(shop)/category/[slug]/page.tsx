@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useCallback, useEffect, useState } from 'react';
-import { notFound, useSearchParams } from 'next/navigation';
+import { notFound, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ProductFiltersSchema } from '@/lib/validation/catalog';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductFilters, type FilterState } from '@/components/product/ProductFilters';
@@ -14,8 +14,25 @@ interface CategoryPageProps {
   params: Promise<{ slug: string }>;
 }
 
+function findCategoryBySlug(categories: CategoryTree[], slug: string): CategoryTree | null {
+  for (const category of categories) {
+    if (category.slug === slug) {
+      return category;
+    }
+
+    const child = findCategoryBySlug(category.children ?? [], slug);
+    if (child) {
+      return child;
+    }
+  }
+
+  return null;
+}
+
 export default function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = use(params);
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [category, setCategory] = useState<CategoryTree | null>(null);
@@ -34,16 +51,16 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     try {
       const response = await fetch('/api/categories');
       if (!response.ok) {
-        throw new Error('Failed to fetch categories');
+        throw new Error('Не удалось загрузить категории');
       }
       const categories: CategoryTree[] = await response.json();
-      const foundCategory = categories.find(c => c.slug === slug);
+      const foundCategory = findCategoryBySlug(categories, slug);
       if (!foundCategory) {
         notFound();
       }
       setCategory(foundCategory);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories');
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить категории');
     } finally {
       setLoading(false);
     }
@@ -87,7 +104,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       const response = await fetch(`/api/products?${params}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch products');
+        throw new Error(errorData.error || 'Не удалось загрузить товары');
       }
       const data = await response.json();
       setFilters(parsedData);
@@ -95,7 +112,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       setNextCursor(data.pagination.nextCursor);
       setHasMore(data.pagination.hasMore);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch products');
+      setError(err instanceof Error ? err.message : 'Не удалось загрузить товары');
     } finally {
       setLoading(false);
     }
@@ -106,6 +123,32 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       void fetchProducts();
     });
   }, [fetchProducts]);
+
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('cursor');
+
+    const entries: Array<[keyof FilterState, string | undefined]> = [
+      ['brandId', newFilters.brandId],
+      ['minPrice', newFilters.minPrice !== undefined ? String(newFilters.minPrice) : undefined],
+      ['maxPrice', newFilters.maxPrice !== undefined ? String(newFilters.maxPrice) : undefined],
+      ['inStock', newFilters.inStock !== undefined ? String(newFilters.inStock) : undefined],
+      ['sortBy', newFilters.sortBy],
+      ['sortOrder', newFilters.sortOrder],
+    ];
+
+    entries.forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    router.replace(params.toString() ? `${pathname}?${params}` : pathname);
+  };
 
   const handleLoadMore = async () => {
     if (!nextCursor || !hasMore || !category) return;
@@ -131,7 +174,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       setNextCursor(data.pagination.nextCursor);
       setHasMore(data.pagination.hasMore);
     } catch (err) {
-      console.error('Failed to load more products:', err instanceof Error ? err.message : err);
+      console.error('Не удалось загрузить дополнительные товары:', err instanceof Error ? err.message : err);
     }
   };
 
@@ -164,7 +207,11 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-1/4">
-          <ProductFilters onFilterChange={setFilters} />
+          <ProductFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            activeCategorySlug={slug}
+          />
         </div>
         <div className="lg:w-3/4">
           {loading && products.length === 0 ? (
@@ -177,7 +224,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
               {hasMore && (
                 <div className="text-center mt-8">
                   <Button onClick={handleLoadMore} variant="secondary">
-                    Загрузить еще
+                    Показать ещё
                   </Button>
                 </div>
               )}

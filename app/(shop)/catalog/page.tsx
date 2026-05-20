@@ -27,7 +27,6 @@ export default function CatalogPage() {
     try {
       const params = new URLSearchParams();
       if (cursor) params.set('cursor', cursor);
-      if (filters.categoryId) params.set('categoryId', filters.categoryId);
       if (filters.brandId) params.set('brandId', filters.brandId);
       if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
@@ -40,7 +39,7 @@ export default function CatalogPage() {
         signal: abortController.signal,
       });
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error('Не удалось загрузить товары');
       }
       const data: CursorPaginatedResponse<ProductCard> = await response.json();
 
@@ -51,7 +50,7 @@ export default function CatalogPage() {
       }
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
-        console.error('Failed to fetch products:', error);
+        console.error('Не удалось загрузить товары:', error);
       }
     } finally {
       setLoading(false);
@@ -79,22 +78,24 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <ProductFilters onFilterChange={handleFilterChange} />
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-4xl font-bold text-[#1a1a1a] uppercase tracking-tight mb-8">Каталог</h1>
 
-        <div className="flex-1 p-8">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold mb-8">Catalog</h1>
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-1/4">
+            <ProductFilters filters={filters} onFilterChange={handleFilterChange} />
+          </div>
 
+          <div className="lg:w-3/4">
             {loading && products.length === 0 ? (
               <div className="flex items-center justify-center py-16">
                 <div
                   className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-red-600"
                   role="status"
-                  aria-label="Loading products"
+                  aria-label="Загрузка товаров"
                 >
-                  <span className="sr-only">Loading...</span>
+                  <span className="sr-only">Загрузка...</span>
                 </div>
               </div>
             ) : (
@@ -108,7 +109,7 @@ export default function CatalogPage() {
                       disabled={loading}
                       className="px-8 py-3 bg-red-600 text-white font-bold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
-                      {loading ? 'Loading...' : 'Load More'}
+                      {loading ? 'Загрузка...' : 'Показать ещё'}
                     </button>
                   </div>
                 )}
