@@ -11,12 +11,9 @@ import { useCartStore } from '@/store/cartStore';
 import type { CurrentUser } from '@/types/api';
 
 export default function CheckoutPage() {
-  const cart = useCartStore((state) => ({
-    id: state.id,
-    userId: state.userId,
-    items: state.items,
-    totalAmount: state.totalAmount,
-  }));
+  const userId = useCartStore((state) => state.userId);
+  const items = useCartStore((state) => state.items);
+  const totalAmount = useCartStore((state) => state.totalAmount);
   const isLoading = useCartStore((state) => state.isLoading);
   const hasFetched = useCartStore((state) => state.hasFetched);
   const errorCode = useCartStore((state) => state.errorCode);
@@ -63,7 +60,7 @@ export default function CheckoutPage() {
     </div>
   );
 
-  if ((isLoading && cart.items.length === 0) || isProfileLoading) {
+  if ((isLoading && items.length === 0) || isProfileLoading) {
     return (
       <Container className="py-10">
         {pageHeader}
@@ -93,7 +90,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cart.items.length === 0) {
+  if (items.length === 0) {
     return (
       <Container className="py-10">
         {pageHeader}
@@ -115,7 +112,7 @@ export default function CheckoutPage() {
   return (
     <Container className="py-10">
       {pageHeader}
-      <CheckoutForm cart={cart} initialPhone={phone} />
+      <CheckoutForm userId={userId} items={items} totalAmount={totalAmount} initialPhone={phone} />
     </Container>
   );
 }

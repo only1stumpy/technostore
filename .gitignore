@@ -43,14 +43,8 @@ next-env.d.ts
 /app/generated/prisma
 .lazyweb/
 
-AGENTS.md
-skills-lock.json
-CLAUDE.md
-.agents/
-.claude/
 .idea/
 .env*.local
-docs/
 .kangentic/
 .claude/settings.local.json
 kangentic.local.json

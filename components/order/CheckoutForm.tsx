@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import type { Cart, OrderDetail } from '@/types/api';
+import type { CartItem, OrderDetail } from '@/types/api';
 import { formatPrice } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
 
 interface CheckoutFormProps {
-  cart: Cart;
+  userId: string;
+  items: CartItem[];
+  totalAmount: number;
   initialPhone?: string;
 }
 
@@ -20,7 +22,7 @@ type OrderResponse = {
   error?: string;
 };
 
-export function CheckoutForm({ cart, initialPhone = '' }: CheckoutFormProps) {
+export function CheckoutForm({ userId, items, totalAmount, initialPhone = '' }: CheckoutFormProps) {
   const router = useRouter();
   const setCart = useCartStore((state) => state.setCart);
   const [address, setAddress] = useState('');
@@ -29,7 +31,7 @@ export function CheckoutForm({ cart, initialPhone = '' }: CheckoutFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const itemsCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,7 +51,7 @@ export function CheckoutForm({ cart, initialPhone = '' }: CheckoutFormProps) {
         return;
       }
 
-      setCart({ id: '', userId: cart.userId, items: [], totalAmount: 0 });
+      setCart({ id: '', userId, items: [], totalAmount: 0 });
       router.push(`/orders/${json.data.id}`);
       router.refresh();
     } catch {
@@ -107,7 +109,7 @@ export function CheckoutForm({ cart, initialPhone = '' }: CheckoutFormProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-3">
-            {cart.items.map((item) => (
+            {items.map((item) => (
               <div key={item.id} className="flex justify-between gap-4 text-sm">
                 <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
                 <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
@@ -121,7 +123,7 @@ export function CheckoutForm({ cart, initialPhone = '' }: CheckoutFormProps) {
             </div>
             <div className="flex items-center justify-between text-xl font-bold">
               <span>К оплате</span>
-              <span>{formatPrice(cart.totalAmount)}</span>
+              <span>{formatPrice(totalAmount)}</span>
             </div>
           </div>
           <Button type="submit" className="w-full" isLoading={isSubmitting} disabled={isSubmitting}>
