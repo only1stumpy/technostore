@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { formatPrice } from '@/lib/utils';
 import type { ProductCard as ProductCardType } from '@/types/api';
 
 interface ProductCardProps {
@@ -46,7 +47,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="flex items-baseline justify-between pt-2">
           <div className="text-2xl font-bold text-gray-900">
-            ${product.price.toLocaleString()}
+            {formatPrice(product.price)}
           </div>
           {lowStock && (
             <div className="text-xs text-red-600 font-medium">

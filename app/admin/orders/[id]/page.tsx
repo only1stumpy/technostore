@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { OrderItems } from '@/components/order/OrderItems';
 import { OrderStatus } from '@/components/order/OrderStatus';
 import { OrderStatusSelect } from '@/components/admin/OrderStatusSelect';
+import { formatPrice } from '@/lib/utils';
 import type { AdminOrderDetail, OrderStatus as OrderStatusType } from '@/types/api';
 
 interface AdminOrderPageProps {
@@ -77,7 +78,7 @@ export default function AdminOrderPage({ params }: AdminOrderPageProps) {
             {order.comment && <div><p className="text-sm font-semibold uppercase text-muted-foreground">Комментарий</p><p className="mt-1">{order.comment}</p></div>}
             <div className="border-t border-border pt-4">
               <p className="text-sm font-semibold uppercase text-muted-foreground">Итого</p>
-              <p className="mt-1 text-2xl font-black">{order.total.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</p>
+              <p className="mt-1 text-2xl font-black">{formatPrice(order.total)}</p>
             </div>
           </CardContent>
         </Card>

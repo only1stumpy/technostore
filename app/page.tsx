@@ -39,14 +39,14 @@ export default function Home() {
             <p className="text-xl text-muted-foreground mb-8">
               Интернет-магазин электроники с доставкой по Приднестровью
             </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/catalog">
-                <Button size="lg" variant="primary">
+            <div className="flex flex-col gap-4 justify-center sm:flex-row">
+              <Link href="/catalog" className="w-full sm:w-auto">
+                <Button size="lg" variant="primary" className="w-full sm:w-auto">
                   Перейти в каталог
                 </Button>
               </Link>
-              <Link href="/about">
-                <Button size="lg" variant="secondary">
+              <Link href="/about" className="w-full sm:w-auto">
+                <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                   О нас
                 </Button>
               </Link>

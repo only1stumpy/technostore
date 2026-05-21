@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { CartItem as CartItemType } from '@/types/api';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { formatPrice } from '@/lib/utils';
 
 interface CartItemProps {
   item: CartItemType;
@@ -62,10 +63,10 @@ export function CartItem({
           <Link href={`/product/${item.slug}`}>{item.name}</Link>
         </h3>
         <p className="text-sm text-[#666666]">
-          Цена: {item.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
+          Цена: {formatPrice(item.price)}
         </p>
         <p className="text-sm text-[#666666]">
-          Всего: {(item.price * item.quantity).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
+          Всего: {formatPrice(item.price * item.quantity)}
         </p>
       </div>
 

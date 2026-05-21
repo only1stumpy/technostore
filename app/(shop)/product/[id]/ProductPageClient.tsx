@@ -8,6 +8,7 @@ import { ProductSpecs } from '@/components/product/ProductSpecs';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useCartStore } from '@/store/cartStore';
+import { formatPrice } from '@/lib/utils';
 import type { ProductDetail } from '@/types/api';
 
 type CartMessage = {
@@ -109,7 +110,7 @@ export function ProductPageClient({ id }: { id: string }) {
               {product.name}
             </h1>
             <p className="text-3xl font-bold text-[#ff0000]">
-              {product.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
+              {formatPrice(product.price)}
             </p>
 
             {product.description && (

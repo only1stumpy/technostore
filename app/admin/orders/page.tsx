@@ -9,6 +9,7 @@ import { DataTable } from '@/components/admin/DataTable';
 import { OrderStatus } from '@/components/order/OrderStatus';
 import { OrderStatusSelect } from '@/components/admin/OrderStatusSelect';
 import { ORDER_STATUS_LABELS } from '@/lib/constants';
+import { formatPrice } from '@/lib/utils';
 import type { AdminOrder, OrderStatus as OrderStatusType, PaginatedResponse } from '@/types/api';
 
 type OrdersResponse = { success: boolean; data?: PaginatedResponse<AdminOrder>; error?: string };
@@ -105,7 +106,7 @@ export default function AdminOrdersPage() {
             <td className="px-6 py-4 font-bold">#{order.id.slice(-6)}</td>
             <td className="px-6 py-4">{order.user.name || order.user.phone}</td>
             <td className="px-6 py-4"><OrderStatus status={order.status} /></td>
-            <td className="px-6 py-4">{order.total.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</td>
+            <td className="px-6 py-4">{formatPrice(order.total)}</td>
             <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
             <td className="px-6 py-4">
               <div className="flex items-center gap-2">

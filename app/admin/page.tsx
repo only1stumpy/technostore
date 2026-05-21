@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { OrderStatus } from '@/components/order/OrderStatus';
+import { formatPrice } from '@/lib/utils';
 import type { AdminStats } from '@/types/api';
 
 type StatsResponse = { success: boolean; data?: AdminStats; error?: string };
@@ -43,7 +44,7 @@ export default function AdminPage() {
         <StatCard label="Товары" value={stats?.productsCount ?? 0} />
         <StatCard label="Заказы" value={stats?.ordersCount ?? 0} />
         <StatCard label="Пользователи" value={stats?.usersCount ?? 0} />
-        <StatCard label="Выручка" value={(stats?.revenue ?? 0).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })} />
+        <StatCard label="Выручка" value={formatPrice(stats?.revenue ?? 0)} />
       </div>
       <Card>
         <CardContent className="pt-6">
@@ -60,7 +61,7 @@ export default function AdminPage() {
                 </div>
                 <div className="text-right">
                   <OrderStatus status={order.status} />
-                  <p className="mt-2 font-bold">{order.total.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</p>
+                  <p className="mt-2 font-bold">{formatPrice(order.total)}</p>
                 </div>
               </Link>
             )) : <p className="text-muted-foreground">Заказов пока нет</p>}

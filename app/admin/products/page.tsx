@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { DataTable } from '@/components/admin/DataTable';
+import { formatPrice } from '@/lib/utils';
 import type { AdminProduct, PaginatedResponse } from '@/types/api';
 
 type ProductsResponse = { success: boolean; data?: PaginatedResponse<AdminProduct>; error?: string };
@@ -107,7 +108,7 @@ export default function AdminProductsPage() {
             <td className="px-6 py-4 font-bold">{product.name}</td>
             <td className="px-6 py-4">{product.category.name}</td>
             <td className="px-6 py-4">{product.brand.name}</td>
-            <td className="px-6 py-4">{product.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</td>
+            <td className="px-6 py-4">{formatPrice(product.price)}</td>
             <td className="px-6 py-4"><Badge variant={product.stock > 0 ? 'success' : 'destructive'}>{product.stock}</Badge></td>
             <td className="px-6 py-4">
               <div className="flex gap-2">
