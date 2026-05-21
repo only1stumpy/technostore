@@ -98,50 +98,52 @@ export function ProductPageClient({ id }: { id: string }) {
 
   return (
     <Container className="py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="lg:col-span-1">
-          <ProductGallery images={product.images} productName={product.name} />
-        </div>
-
-        <div className="lg:col-span-1 space-y-6">
-          <h1 className="text-4xl font-bold text-[#1a1a1a] uppercase tracking-tight">
-            {product.name}
-          </h1>
-          <p className="text-3xl font-bold text-[#ff0000]">
-            {product.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
-          </p>
-
-          {product.description && (
-            <div className="text-[#1a1a1a]">
-              <h2 className="text-xl font-bold uppercase tracking-tight mb-2">Описание</h2>
-              <p>{product.description}</p>
-            </div>
-          )}
-
-          <div className="flex items-center gap-4">
-            {product.stock > 0 ? (
-              <span className="text-[#10b981] font-medium">В наличии ({product.stock})</span>
-            ) : (
-              <span className="text-[#ef4444] font-medium">Нет в наличии</span>
-            )}
-            <Button
-              variant="primary"
-              disabled={product.stock === 0}
-              isLoading={isAddingToCart}
-              onClick={handleAddToCart}
-            >
-              Добавить в корзину
-            </Button>
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <ProductGallery images={product.images} productName={product.name} />
           </div>
 
-          {cartMessage && (
-            <p className={cartMessage.type === 'success' ? 'text-[#10b981]' : 'text-[#ef4444]'}>
-              {cartMessage.text}
+          <div className="space-y-6">
+            <h1 className="text-4xl font-bold text-[#1a1a1a] uppercase tracking-tight">
+              {product.name}
+            </h1>
+            <p className="text-3xl font-bold text-[#ff0000]">
+              {product.price.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}
             </p>
-          )}
 
-          {product.specs && <ProductSpecs specs={product.specs} />}
+            {product.description && (
+              <div className="text-[#1a1a1a]">
+                <h2 className="text-xl font-bold uppercase tracking-tight mb-2">Описание</h2>
+                <p>{product.description}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4">
+              {product.stock > 0 ? (
+                <span className="text-[#10b981] font-medium">В наличии ({product.stock})</span>
+              ) : (
+                <span className="text-[#ef4444] font-medium">Нет в наличии</span>
+              )}
+              <Button
+                variant="primary"
+                disabled={product.stock === 0}
+                isLoading={isAddingToCart}
+                onClick={handleAddToCart}
+              >
+                Добавить в корзину
+              </Button>
+            </div>
+
+            {cartMessage && (
+              <p className={cartMessage.type === 'success' ? 'text-[#10b981]' : 'text-[#ef4444]'}>
+                {cartMessage.text}
+              </p>
+            )}
+          </div>
         </div>
+
+        {product.specs && <ProductSpecs specs={product.specs} />}
       </div>
     </Container>
   );

@@ -80,17 +80,17 @@ function HeaderSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navigateToCatalog = () => {
+  const navigateToSearch = () => {
     if (!trimmedQuery) return;
 
     setIsOpen(false);
     setActiveIndex(-1);
-    router.push(`/catalog?search=${encodeURIComponent(trimmedQuery)}`);
+    router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigateToCatalog();
+    navigateToSearch();
   };
 
   const handleSuggestionClick = () => {
@@ -150,7 +150,7 @@ function HeaderSearch() {
         />
         <button
           type="submit"
-          className="bg-primary px-4 text-sm font-bold uppercase tracking-tight text-white hover:bg-primary-hover transition-colors"
+          className="cursor-pointer bg-primary px-4 text-sm font-bold uppercase tracking-tight text-white hover:bg-primary-hover transition-colors"
           style={{ fontFamily: 'var(--font-oswald)' }}
         >
           Найти
@@ -195,11 +195,11 @@ function HeaderSearch() {
               })}
               <button
                 type="button"
-                onClick={navigateToCatalog}
-                className="w-full px-4 py-3 text-left text-sm font-bold uppercase tracking-tight text-primary hover:bg-secondary"
+                onClick={navigateToSearch}
+                className="w-full cursor-pointer px-4 py-3 text-left text-sm font-bold uppercase tracking-tight text-primary hover:bg-secondary"
                 style={{ fontFamily: 'var(--font-oswald)' }}
               >
-                Смотреть все результаты
+                Смотреть все результаты поиска
               </button>
             </div>
           ) : (
@@ -207,11 +207,11 @@ function HeaderSearch() {
               <p className="text-sm text-muted-foreground">Ничего не найдено</p>
               <button
                 type="button"
-                onClick={navigateToCatalog}
-                className="text-sm font-bold uppercase tracking-tight text-primary hover:text-primary-hover"
+                onClick={navigateToSearch}
+                className="cursor-pointer text-sm font-bold uppercase tracking-tight text-primary hover:text-primary-hover"
                 style={{ fontFamily: 'var(--font-oswald)' }}
               >
-                Искать в каталоге
+                Искать на сайте
               </button>
             </div>
           )}
@@ -287,20 +287,23 @@ export function Header() {
 
           <HeaderSearch />
 
-          <HeaderActions />
+          <div className="hidden md:block">
+            <HeaderActions />
+          </div>
         </div>
         {isMobileMenuOpen && (
           <nav id={mobileMenuId} className="border-t border-border py-3 md:hidden">
             <div className="grid gap-2">
-              <Link href="/catalog" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+              <Link href="/catalog" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary">
                 Каталог
               </Link>
-              <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+              <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary">
                 О нас
               </Link>
-              <Link href="/contacts" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+              <Link href="/contacts" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary">
                 Контакты
               </Link>
+              <HeaderActions variant="mobile" onNavigate={() => setIsMobileMenuOpen(false)} />
             </div>
           </nav>
         )}

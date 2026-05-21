@@ -15,7 +15,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <Link
       href={`/product/${product.id}`}
       className="group block bg-white border border-gray-200 hover:border-red-600 transition-colors"
-      aria-label={`View ${product.name} by ${product.brand.name}`}
+      aria-label={`${product.name}, бренд ${product.brand.name}`}
     >
       <div className="aspect-square relative bg-gray-50 overflow-hidden">
         {imageUrl ? (
@@ -28,12 +28,12 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
-            No Image
+            Нет изображения
           </div>
         )}
         {!inStock && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">OUT OF STOCK</span>
+            <span className="text-white font-bold text-lg">Нет в наличии</span>
           </div>
         )}
       </div>
@@ -50,13 +50,13 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
           {lowStock && (
             <div className="text-xs text-red-600 font-medium">
-              Only {product.stock} left
+              Осталось {product.stock} шт.
             </div>
           )}
         </div>
 
         {inStock && (
-          <div className="text-sm text-green-600 font-medium">In Stock</div>
+          <div className="text-sm text-green-600 font-medium">В наличии</div>
         )}
       </div>
     </Link>

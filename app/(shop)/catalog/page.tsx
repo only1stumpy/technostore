@@ -14,9 +14,21 @@ function flattenCategories(categories: CategoryTree[]): CategoryTree[] {
 }
 
 function ProductSection({ title, subtitle, products }: { title: string; subtitle: string; products: ProductCard[] }) {
+  const carouselRef = useRef<HTMLDivElement>(null);
+
   if (products.length === 0) {
     return null;
   }
+
+  const scrollProducts = (direction: 'prev' | 'next') => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    carousel.scrollBy({
+      left: direction === 'next' ? carousel.clientWidth : -carousel.clientWidth,
+      behavior: 'smooth',
+    });
+  };
 
   return (
     <section className="space-y-5">
@@ -25,13 +37,33 @@ function ProductSection({ title, subtitle, products }: { title: string; subtitle
           <h2 className="text-3xl font-bold text-[#1a1a1a] uppercase tracking-tight">{title}</h2>
           <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
         </div>
-        <Link href="#all-products" className="text-sm font-bold uppercase text-red-600 hover:text-red-700">
-          Все товары
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="#all-products" className="hidden text-sm font-bold uppercase text-red-600 hover:text-red-700 sm:inline">
+            Все товары
+          </Link>
+          <button
+            type="button"
+            onClick={() => scrollProducts('prev')}
+            className="flex h-10 w-10 items-center justify-center border border-gray-200 bg-white text-xl font-bold text-gray-900 hover:border-red-600 hover:text-red-600 transition-colors"
+            aria-label={`Прокрутить ${title} назад`}
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollProducts('next')}
+            className="flex h-10 w-10 items-center justify-center border border-gray-200 bg-white text-xl font-bold text-gray-900 hover:border-red-600 hover:text-red-600 transition-colors"
+            aria-label={`Прокрутить ${title} вперёд`}
+          >
+            →
+          </button>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div ref={carouselRef} className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
         {products.map((product) => (
-          <ProductCardComponent key={`${title}-${product.id}`} product={product} />
+          <div key={`${title}-${product.id}`} className="min-w-[260px] snap-start sm:min-w-[300px] lg:min-w-[280px] xl:min-w-[300px]">
+            <ProductCardComponent product={product} />
+          </div>
         ))}
       </div>
     </section>

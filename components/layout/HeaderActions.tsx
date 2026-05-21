@@ -6,7 +6,12 @@ import { usePathname } from 'next/navigation';
 import { CartIcon } from '@/components/cart/CartIcon';
 import type { CurrentUser } from '@/types/api';
 
-export function HeaderActions() {
+type HeaderActionsProps = {
+  variant?: 'desktop' | 'mobile';
+  onNavigate?: () => void;
+};
+
+export function HeaderActions({ variant = 'desktop', onNavigate }: HeaderActionsProps) {
   const pathname = usePathname();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +53,49 @@ export function HeaderActions() {
 
   const displayName = user?.name || user?.phone;
 
+  if (variant === 'mobile') {
+    return (
+      <div className="grid gap-2 border-t border-border pt-3">
+        <Link
+          href="/cart"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 text-primary">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25h.008v.008H6v-.008zm12.75 0h.008v.008h-.008v-.008z" />
+          </svg>
+          <span className="font-bold">Корзина</span>
+        </Link>
+
+        {isLoading ? (
+          <div className="h-10 rounded-lg bg-secondary" />
+        ) : user ? (
+          <Link
+            href="/profile"
+            onClick={onNavigate}
+            className="flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 shrink-0 text-primary">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+            </svg>
+            <span className="truncate font-bold">{displayName}</span>
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 text-primary">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+            <span className="font-bold">Войти</span>
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 sm:gap-6">
       <CartIcon />
@@ -67,9 +115,7 @@ export function HeaderActions() {
       ) : (
         <Link
           href="/login"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-bold uppercase tracking-tight text-white hover:bg-primary-hover transition-colors sm:px-6"
-          style={{ fontFamily: 'var(--font-oswald)' }}
-        >
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-bold uppercase tracking-tight text-white hover:bg-primary-hover transition-colors sm:px-6"        >
           Войти
         </Link>
       )}
