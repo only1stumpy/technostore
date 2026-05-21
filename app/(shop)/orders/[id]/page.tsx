@@ -138,6 +138,10 @@ export default function OrderDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div>
+                <p className="text-muted-foreground">Получатель</p>
+                <p className="mt-1 font-medium">{order.recipientName || 'Не указан'}</p>
+              </div>
+              <div>
                 <p className="text-muted-foreground">Адрес</p>
                 <p className="mt-1 font-medium">{order.address}</p>
               </div>

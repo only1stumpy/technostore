@@ -58,6 +58,7 @@ export class OrderRepository implements IOrderRepository {
         data: {
           userId,
           total,
+          recipientName: input.recipientName,
           address: input.address,
           phone: input.phone,
           comment: input.comment || null,
@@ -107,6 +108,7 @@ export class OrderRepository implements IOrderRepository {
       id: order.id,
       status: order.status,
       total: Number(order.total),
+      recipientName: order.recipientName,
       address: order.address,
       phone: order.phone,
       comment: order.comment,
@@ -138,6 +140,7 @@ export class OrderRepository implements IOrderRepository {
       id: order.id,
       status: order.status,
       total: Number(order.total),
+      recipientName: order.recipientName,
       address: order.address,
       phone: order.phone,
       comment: order.comment,

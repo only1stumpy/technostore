@@ -9,6 +9,7 @@ export type CurrentUser = {
   id: string;
   phone: string;
   name: string | null;
+  address: string | null;
   role: 'USER' | 'ADMIN';
 };
 
@@ -112,7 +113,7 @@ export type ProductFilters = {
   maxPrice?: number;
   inStock?: boolean;
   search?: string;
-  sortBy: 'price' | 'createdAt' | 'name';
+  sortBy: 'price' | 'createdAt' | 'name' | 'popular';
   sortOrder: 'asc' | 'desc';
 };
 
@@ -153,6 +154,7 @@ export type OrderSummary = {
   id: string;
   status: OrderStatus;
   total: number;
+  recipientName: string;
   address: string;
   phone: string;
   comment: string | null;
@@ -167,6 +169,7 @@ export type OrderDetail = OrderSummary & {
 };
 
 export type CreateOrderInput = {
+  recipientName: string;
   address: string;
   phone: string;
   comment?: string | null;

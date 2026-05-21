@@ -27,6 +27,7 @@ model User {
   id        String   @id @default(cuid())
   phone     String   @unique
   name      String?
+  address   String?
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -125,6 +126,7 @@ model Order {
   userId    String
   status    OrderStatus @default(NEW)
   total     Decimal     @db.Decimal(10, 2)
+  recipientName String
   address   String
   phone     String
   comment   String?

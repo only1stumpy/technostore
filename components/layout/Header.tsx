@@ -222,6 +222,22 @@ function HeaderSearch() {
 }
 
 export function Header() {
+  const mobileMenuId = useId();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
+
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-border">
       <Container>
@@ -232,6 +248,17 @@ export function Header() {
                 TechnoStore
               </span>
             </Link>
+
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-2xl font-bold md:hidden"
+              onClick={() => setIsMobileMenuOpen((value) => !value)}
+              aria-label={isMobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+              aria-controls={mobileMenuId}
+              aria-expanded={isMobileMenuOpen}
+            >
+              {isMobileMenuOpen ? '×' : '☰'}
+            </button>
 
             <nav className="hidden md:flex items-center gap-8">
               <Link
@@ -262,6 +289,21 @@ export function Header() {
 
           <HeaderActions />
         </div>
+        {isMobileMenuOpen && (
+          <nav id={mobileMenuId} className="border-t border-border py-3 md:hidden">
+            <div className="grid gap-2">
+              <Link href="/catalog" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+                Каталог
+              </Link>
+              <Link href="/about" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+                О нас
+              </Link>
+              <Link href="/contacts" onClick={() => setIsMobileMenuOpen(false)} className="rounded-lg px-3 py-2 text-base font-bold uppercase tracking-tight text-foreground hover:bg-secondary" style={{ fontFamily: 'var(--font-oswald)' }}>
+                Контакты
+              </Link>
+            </div>
+          </nav>
+        )}
       </Container>
     </header>
   );

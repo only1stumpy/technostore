@@ -70,6 +70,7 @@ export default function AdminOrderPage({ params }: AdminOrderPageProps) {
             </div>
             <div>
               <p className="text-sm font-semibold uppercase text-muted-foreground">Доставка</p>
+              <p className="mt-1 font-semibold">{order.recipientName || 'Получатель не указан'}</p>
               <p className="mt-1">{order.address}</p>
               <p className="text-muted-foreground">{order.phone}</p>
             </div>

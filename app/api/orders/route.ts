@@ -6,6 +6,7 @@ import { orderService } from '@/lib/services/order.service';
 import { normalizePhone, validatePhone } from '@/lib/utils';
 
 const createOrderSchema = z.object({
+  recipientName: z.string().trim().min(2, 'Укажите ФИО получателя').max(100, 'ФИО слишком длинное'),
   address: z.string().trim().min(5, 'Укажите адрес доставки'),
   phone: z.string().trim().min(5, 'Укажите телефон').transform(normalizePhone).refine(validatePhone, 'Укажите корректный телефон'),
   comment: z.string().trim().max(500, 'Комментарий слишком длинный').optional().nullable(),

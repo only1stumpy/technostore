@@ -14,7 +14,7 @@ export const ProductFiltersSchema = z.object({
   search: z.string().min(1).max(100).optional(),
 
   // Sorting
-  sortBy: z.enum(['price', 'createdAt', 'name']).default('createdAt'),
+  sortBy: z.enum(['price', 'createdAt', 'name', 'popular']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc')
 }).refine(
   (data) => !data.maxPrice || !data.minPrice || data.maxPrice >= data.minPrice,

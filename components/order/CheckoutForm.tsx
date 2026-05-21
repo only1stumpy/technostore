@@ -14,6 +14,8 @@ interface CheckoutFormProps {
   items: CartItem[];
   totalAmount: number;
   initialPhone?: string;
+  initialName?: string;
+  initialAddress?: string;
 }
 
 type OrderResponse = {
@@ -22,10 +24,11 @@ type OrderResponse = {
   error?: string;
 };
 
-export function CheckoutForm({ userId, items, totalAmount, initialPhone = '' }: CheckoutFormProps) {
+export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', initialName = '', initialAddress = '' }: CheckoutFormProps) {
   const router = useRouter();
   const setCart = useCartStore((state) => state.setCart);
-  const [address, setAddress] = useState('');
+  const [recipientName, setRecipientName] = useState(initialName);
+  const [address, setAddress] = useState(initialAddress);
   const [phone, setPhone] = useState(initialPhone);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +45,7 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '' }: 
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, phone, comment: comment || null }),
+        body: JSON.stringify({ recipientName, address, phone, comment: comment || null }),
       });
       const json: OrderResponse = await response.json();
 
@@ -74,6 +77,14 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '' }: 
             </div>
           ) : null}
 
+          <Input
+            label="ФИО получателя"
+            value={recipientName}
+            onChange={(event) => setRecipientName(event.target.value)}
+            placeholder="Иван Иванов"
+            required
+            minLength={2}
+          />
           <Input
             label="Адрес доставки"
             value={address}

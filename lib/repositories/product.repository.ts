@@ -2,12 +2,17 @@ import { prisma } from '@/lib/prisma';
 import { Prisma, PrismaClient } from '@prisma/client';
 import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail } from '@/types/api';
 import { decodeCursor, encodeCursor } from '@/lib/pagination';
+import { InvalidCursorError } from '@/lib/errors';
 import type { IProductRepository } from './interfaces';
 
 export class ProductRepository implements IProductRepository {
   constructor(private prismaClient: PrismaClient = prisma) {}
 
   async findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>> {
+    if (filters.sortBy === 'popular') {
+      return this.findManyByPopularity(filters);
+    }
+
     const where = this.buildWhereClause(filters);
 
     const products = await this.prismaClient.product.findMany({
@@ -112,6 +117,130 @@ export class ProductRepository implements IProductRepository {
       ...result,
       price: Number(result.price),
       specs: result.specs as Record<string, unknown> | null,
+    };
+  }
+
+  private async findManyByPopularity(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>> {
+    const where = this.buildWhereClause({ ...filters, cursor: undefined });
+    const cursor = filters.cursor ? decodeCursor(filters.cursor) : null;
+    const cursorPopularity = cursor ? Number(cursor.sortField) : null;
+
+    if (filters.cursor && (!cursor || !Number.isFinite(cursorPopularity))) {
+      throw new InvalidCursorError();
+    }
+
+    const cursorProduct = cursor
+      ? await this.prismaClient.product.findFirst({ where: { ...where, id: cursor.id }, select: { id: true } })
+      : null;
+
+    if (cursor && !cursorProduct) {
+      throw new InvalidCursorError();
+    }
+
+    const popularityRows = await this.prismaClient.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: { status: { not: 'CANCELLED' } },
+        product: where,
+      },
+      _sum: { quantity: true },
+      orderBy: [
+        { _sum: { quantity: filters.sortOrder } },
+        { productId: 'asc' },
+      ],
+      take: filters.limit + 1,
+      ...(cursor && cursorPopularity !== null && cursorPopularity > 0 ? {
+        having: {
+          OR: [
+            { quantity: { _sum: { [filters.sortOrder === 'asc' ? 'gt' : 'lt']: cursorPopularity } } },
+            { quantity: { _sum: { equals: cursorPopularity } }, productId: { gt: cursor.id } },
+          ],
+        },
+      } : {}),
+    });
+
+    let rows = popularityRows.map((row) => ({
+      id: row.productId,
+      popularity: row._sum.quantity ?? 0,
+    }));
+
+    if (filters.sortOrder === 'desc' && rows.length < filters.limit + 1) {
+      const zeroPopularityProducts = await this.prismaClient.product.findMany({
+        where: {
+          ...where,
+          orderItems: { none: { order: { status: { not: 'CANCELLED' } } } },
+          ...(cursorPopularity === 0 && cursor ? { id: { gt: cursor.id } } : {}),
+        },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: filters.limit + 1 - rows.length,
+      });
+      rows = rows.concat(zeroPopularityProducts.map((product) => ({ id: product.id, popularity: 0 })));
+    }
+
+    if (filters.sortOrder === 'asc') {
+      const zeroPopularityProducts = cursorPopularity === null || cursorPopularity === 0
+        ? await this.prismaClient.product.findMany({
+          where: {
+            ...where,
+            orderItems: { none: { order: { status: { not: 'CANCELLED' } } } },
+            ...(cursorPopularity === 0 && cursor ? { id: { gt: cursor.id } } : {}),
+          },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+          take: filters.limit + 1,
+        })
+        : [];
+
+      rows = zeroPopularityProducts.map((product) => ({ id: product.id, popularity: 0 }));
+
+      if (rows.length < filters.limit + 1) {
+        rows = rows.concat(popularityRows.map((row) => ({
+          id: row.productId,
+          popularity: row._sum.quantity ?? 0,
+        })).slice(0, filters.limit + 1 - rows.length));
+      }
+    }
+
+    const hasMore = rows.length > filters.limit;
+    const pageRows = hasMore ? rows.slice(0, filters.limit) : rows;
+    const products = await this.prismaClient.product.findMany({
+      where: { id: { in: pageRows.map((row) => row.id) } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        images: true,
+        stock: true,
+        brand: { select: { id: true, name: true, slug: true } },
+        category: { select: { id: true, name: true, slug: true } },
+      },
+    });
+    const productById = new Map(products.map((product) => [product.id, product]));
+    const data = pageRows.flatMap((row) => {
+      const product = productById.get(row.id);
+      return product ? [{ ...product, popularity: row.popularity }] : [];
+    });
+    const lastItem = data[data.length - 1];
+    const nextCursor = hasMore && lastItem ? encodeCursor(String(lastItem.popularity), lastItem.id) : null;
+
+    return {
+      data: data.map((product) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: Number(product.price),
+        imageUrl: product.images[0] || null,
+        stock: product.stock,
+        brand: product.brand,
+        category: product.category,
+      })),
+      pagination: {
+        nextCursor,
+        hasMore,
+        limit: filters.limit,
+      },
     };
   }
 

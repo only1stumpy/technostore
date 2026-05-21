@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -13,6 +14,7 @@ function formatOrder(order: Awaited<ReturnType<typeof prisma.order.findMany>>[nu
     id: order.id,
     status: order.status,
     total: Number(order.total),
+    recipientName: order.recipientName,
     address: order.address,
     phone: order.phone,
     comment: order.comment,
@@ -35,8 +37,26 @@ export async function GET(request: NextRequest) {
       page: request.nextUrl.searchParams.get('page') || undefined,
       limit: request.nextUrl.searchParams.get('limit') || undefined,
       status: request.nextUrl.searchParams.get('status') || undefined,
+      dateFrom: request.nextUrl.searchParams.get('dateFrom') || undefined,
+      dateTo: request.nextUrl.searchParams.get('dateTo') || undefined,
     });
-    const where = pagination.status ? { status: pagination.status } : undefined;
+    const where: Prisma.OrderWhereInput = {};
+
+    if (pagination.status) {
+      where.status = pagination.status;
+    }
+
+    if (pagination.dateFrom || pagination.dateTo) {
+      where.createdAt = {};
+      if (pagination.dateFrom) {
+        where.createdAt.gte = pagination.dateFrom;
+      }
+      if (pagination.dateTo) {
+        const endOfDay = new Date(pagination.dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endOfDay;
+      }
+    }
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({

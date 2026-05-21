@@ -7,7 +7,7 @@ import type { ProductCard, CursorPaginatedResponse } from '@/types/api';
 import { productRepository } from '@/lib/repositories/product.repository';
 import { InvalidCursorError } from '@/lib/errors';
 
-const ALLOWED_SORT_FIELDS = ['price', 'createdAt', 'name'] as const;
+const ALLOWED_SORT_FIELDS = ['price', 'createdAt', 'name', 'popular'] as const;
 
 export async function GET(request: NextRequest) {
   try {

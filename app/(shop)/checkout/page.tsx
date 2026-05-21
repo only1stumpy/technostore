@@ -19,6 +19,8 @@ export default function CheckoutPage() {
   const errorCode = useCartStore((state) => state.errorCode);
   const fetchCart = useCartStore((state) => state.fetchCart);
   const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +39,8 @@ export default function CheckoutPage() {
 
         const data: { user: CurrentUser } = await response.json();
         setPhone(data.user.phone);
+        setName(data.user.name ?? '');
+        setAddress(data.user.address ?? '');
       } catch {
       } finally {
         if (mounted) {
@@ -112,7 +116,7 @@ export default function CheckoutPage() {
   return (
     <Container className="py-10">
       {pageHeader}
-      <CheckoutForm userId={userId} items={items} totalAmount={totalAmount} initialPhone={phone} />
+      <CheckoutForm userId={userId} items={items} totalAmount={totalAmount} initialPhone={phone} initialName={name} initialAddress={address} />
     </Container>
   );
 }

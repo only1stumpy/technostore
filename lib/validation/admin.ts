@@ -38,4 +38,9 @@ export const adminPaginationSchema = z.object({
 
 export const adminOrdersQuerySchema = adminPaginationSchema.extend({
   status: z.enum(ORDER_STATUS).optional(),
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
+}).refine((input) => !input.dateFrom || !input.dateTo || input.dateFrom <= input.dateTo, {
+  message: 'Дата начала не может быть позже даты окончания',
+  path: ['dateFrom'],
 });

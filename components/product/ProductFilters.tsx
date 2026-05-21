@@ -14,7 +14,7 @@ export interface FilterState {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
-  sortBy: 'price' | 'createdAt' | 'name';
+  sortBy: 'price' | 'createdAt' | 'name' | 'popular';
   sortOrder: 'asc' | 'desc';
 }
 
@@ -187,6 +187,7 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
             >
               <option value="createdAt">Сначала новые</option>
               <option value="price">Цена</option>
+              <option value="popular">Популярность</option>
               <option value="name">Название</option>
             </select>
             <select
