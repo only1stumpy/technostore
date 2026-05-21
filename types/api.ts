@@ -171,3 +171,77 @@ export type CreateOrderInput = {
   phone: string;
   comment?: string | null;
 };
+
+export type AdminProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  stock: number;
+  images: string[];
+  specs: Record<string, unknown> | null;
+  categoryId: string;
+  brandId: string;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  brand: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  productCount: number;
+};
+
+export type AdminBrand = {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  productCount: number;
+};
+
+export type AdminOrder = OrderSummary & {
+  user: {
+    id: string;
+    name: string | null;
+    phone: string;
+  };
+};
+
+export type AdminOrderDetail = OrderDetail & {
+  user: {
+    id: string;
+    name: string | null;
+    phone: string;
+  };
+};
+
+export type AdminUser = {
+  id: string;
+  phone: string;
+  name: string | null;
+  role: 'USER' | 'ADMIN';
+  ordersCount: number;
+  createdAt: string;
+};
+
+export type AdminStats = {
+  productsCount: number;
+  ordersCount: number;
+  usersCount: number;
+  revenue: number;
+  recentOrders: AdminOrder[];
+};

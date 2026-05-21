@@ -61,10 +61,15 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findById(id: string): Promise<ProductDetail | null> {
-    const result = await this.prismaClient.product.findUnique({
+    const result = await this.prismaClient.product.findFirst({
       where: {
-        id,
         deletedAt: null,
+        OR: [
+          { id },
+          { slug: id },
+        ],
+        category: { deletedAt: null },
+        brand: { deletedAt: null },
       },
       select: {
         id: true,
@@ -113,6 +118,8 @@ export class ProductRepository implements IProductRepository {
   private buildWhereClause(filters: ProductFilters): Prisma.ProductWhereInput {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
+      category: { deletedAt: null },
+      brand: { deletedAt: null },
     };
 
     if (filters.categoryId) {
