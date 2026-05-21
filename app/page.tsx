@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'Интернет-магазин электроники',
+  description: 'Смартфоны, ноутбуки, планшеты и аксессуары с доставкой по Приднестровью.',
+};
 
 const popularCategories = [
   {

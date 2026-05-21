@@ -62,8 +62,8 @@ export const CACHE_KEYS = {
 };
 
 export const CACHE_TTL = {
-  categories: 3600, // 1 hour
-  brands: 3600, // 1 hour
-  product: 900, // 15 minutes
-  productList: 300, // 5 minutes
+  categories: 1800,
+  brands: 1800,
+  product: 900,
+  productList: 300,
 };

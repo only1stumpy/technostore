@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Container } from '@/components/layout/Container';
 import { ProductCard as ProductCardComponent } from '@/components/product/ProductCard';
 import { ProductGrid } from '@/components/product/ProductGrid';
@@ -37,7 +38,10 @@ function ProductSection({ title, subtitle, products }: { title: string; subtitle
   );
 }
 
-export default function CatalogPage() {
+function CatalogContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search')?.trim() || undefined;
   const [products, setProducts] = useState<ProductCard[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductCard[]>([]);
   const [categories, setCategories] = useState<CategoryTree[]>([]);
@@ -120,6 +124,7 @@ export default function CatalogPage() {
       if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
       if (filters.inStock) params.set('inStock', 'true');
+      if (searchQuery) params.set('search', searchQuery);
       params.set('sortBy', filters.sortBy);
       params.set('sortOrder', filters.sortOrder);
       params.set('limit', '24');
@@ -150,7 +155,7 @@ export default function CatalogPage() {
         }
       }
     }
-  }, [filters]);
+  }, [filters, searchQuery]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -171,6 +176,12 @@ export default function CatalogPage() {
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
+  };
+
+  const clearSearch = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('search');
+    router.replace(params.toString() ? `/catalog?${params}` : '/catalog', { scroll: false });
   };
 
   const loadMore = () => {
@@ -276,7 +287,25 @@ export default function CatalogPage() {
         )}
 
         <section id="all-products" className="scroll-mt-8">
-          <h2 className="text-3xl font-bold text-[#1a1a1a] uppercase tracking-tight mb-6">Все товары</h2>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-[#1a1a1a] uppercase tracking-tight">
+                {searchQuery ? 'Результаты поиска' : 'Все товары'}
+              </h2>
+              {searchQuery && (
+                <p className="mt-1 text-sm text-gray-500">По запросу “{searchQuery}”</p>
+              )}
+            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="self-start text-sm font-bold uppercase text-red-600 hover:text-red-700 sm:self-auto"
+              >
+                Очистить поиск
+              </button>
+            )}
+          </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="lg:w-1/4">
@@ -316,5 +345,13 @@ export default function CatalogPage() {
         </section>
       </Container>
     </div>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 py-8" />}>
+      <CatalogContent />
+    </Suspense>
   );
 }

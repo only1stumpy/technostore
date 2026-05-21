@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+
+export const metadata: Metadata = {
+  title: 'Доставка и оплата',
+  description: 'Условия доставки заказов TechnoStore по Приднестровью и оплата наличными при получении.',
+};
 
 const steps = [
   {

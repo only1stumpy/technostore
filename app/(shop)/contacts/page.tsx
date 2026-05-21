@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+
+export const metadata: Metadata = {
+  title: 'Контакты',
+  description: 'Контакты TechnoStore: адрес, телефон, график работы и помощь с заказами электроники.',
+};
 
 const contacts = [
   { label: 'Адрес', value: 'Тирасполь, ул. 25 Октября, 100' },

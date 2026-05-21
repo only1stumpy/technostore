@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+
+export const metadata: Metadata = {
+  title: 'О магазине',
+  description: 'TechnoStore помогает выбрать электронику для дома, работы и учебы с доставкой по Приднестровью.',
+};
 
 const values = [
   'Подбираем актуальную электронику для повседневных задач',

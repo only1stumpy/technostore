@@ -17,8 +17,19 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "TechnoStore - Интернет-магазин электроники",
-  description: "Купить электронику с доставкой по Приднестровью",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: {
+    default: 'TechnoStore - Интернет-магазин электроники',
+    template: '%s | TechnoStore',
+  },
+  description: 'Купить смартфоны, ноутбуки и аксессуары с доставкой по Приднестровью и оплатой при получении.',
+  openGraph: {
+    title: 'TechnoStore - Интернет-магазин электроники',
+    description: 'Каталог электроники с доставкой по Приднестровью.',
+    siteName: 'TechnoStore',
+    locale: 'ru_RU',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
