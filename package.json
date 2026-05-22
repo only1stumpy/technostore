@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "bunx --bun prisma generate && bunx --bun prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "bunx --bun prisma generate",
     "db:seed": "bun prisma/seed.ts"
   },
   "dependencies": {
@@ -38,6 +38,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.6",
+    "prisma-erd-generator": "^2.4.2",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3"
   }
