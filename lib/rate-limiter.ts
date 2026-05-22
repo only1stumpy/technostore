@@ -23,11 +23,11 @@ export class RateLimiter {
       return;
     }
 
-    const attempts = await this.redisClient.incr(key);
-
-    if (attempts === 1) {
-      await this.redisClient.expire(key, config.windowSeconds);
-    }
+    const [attempts] = await this.redisClient
+      .multi()
+      .incr(key)
+      .expire(key, config.windowSeconds, 'NX')
+      .exec<[number, 0 | 1]>();
 
     if (attempts > config.maxAttempts) {
       const timeRemaining = await this.redisClient.ttl(key);

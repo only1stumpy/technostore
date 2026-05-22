@@ -7,8 +7,6 @@ import type { ProductCard, CursorPaginatedResponse } from '@/types/api';
 import { productRepository } from '@/lib/repositories/product.repository';
 import { InvalidCursorError } from '@/lib/errors';
 
-const ALLOWED_SORT_FIELDS = ['price', 'createdAt', 'name', 'popular'] as const;
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,13 +23,6 @@ export async function GET(request: NextRequest) {
       sortBy: searchParams.get('sortBy') || undefined,
       sortOrder: searchParams.get('sortOrder') || undefined,
     });
-
-    if (!ALLOWED_SORT_FIELDS.includes(filters.sortBy)) {
-      return NextResponse.json(
-        { error: 'Invalid sort field' },
-        { status: 400 }
-      );
-    }
 
     const cacheKey = CACHE_KEYS.productList(hashFilters(filters));
 

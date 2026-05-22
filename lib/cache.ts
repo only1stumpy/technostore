@@ -16,7 +16,7 @@ export async function getCached<T>(
     }
 
     const fresh = await fetcher();
-    await redis.setex(key, ttl, JSON.stringify(fresh)).catch((err) => {
+    await redis.setex(key, ttl, fresh).catch((err) => {
       console.error('Cache write failed:', err);
     });
     return fresh;

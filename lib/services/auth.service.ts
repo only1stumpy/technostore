@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { Redis } from '@upstash/redis';
-import { timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { createToken, setAuthCookie } from '@/lib/auth';
 import { normalizePhone, validatePhone } from '@/lib/utils';
-import { USER_ROLE } from '@/lib/constants';
+import { SMS_CODE_TTL, USER_ROLE } from '@/lib/constants';
 import { RateLimiter, rateLimiter, RATE_LIMITS } from '@/lib/rate-limiter';
 import { SmsService, smsService } from '@/services/sms';
 import { InvalidCodeError, ValidationError, ConfigurationError } from '@/lib/errors';
@@ -37,13 +37,14 @@ export class AuthService implements IAuthService {
 
     const { code } = this.sms.generateVerificationCode();
 
-    await this.redisClient.set(`sms:${normalizedPhone}`, code, { ex: 600 });
-
     const result = await this.sms.sendVerificationCode(normalizedPhone, code);
 
     if (!result.success) {
       throw new ConfigurationError('Failed to send SMS');
     }
+
+    const codeHash = createHash('sha256').update(code).digest('hex');
+    await this.redisClient.set(`sms:${normalizedPhone}`, codeHash, { ex: SMS_CODE_TTL });
 
     return process.env.SMS_PROVIDER === 'mock' ? { code } : {};
   }
@@ -71,15 +72,15 @@ export class AuthService implements IAuthService {
       RATE_LIMITS.SMS_VERIFY
     );
 
-    const savedCode = await this.redisClient.get<string>(`sms:${normalizedPhone}`);
+    const savedCodeHash = await this.redisClient.get<string>(`sms:${normalizedPhone}`);
 
-    if (!savedCode) {
+    if (!savedCodeHash) {
       throw new InvalidCodeError('Code expired or not found');
     }
 
-    const savedBuffer = Buffer.from(String(savedCode));
-    const codeBuffer = Buffer.from(String(code));
-    if (savedBuffer.length !== codeBuffer.length || !timingSafeEqual(savedBuffer, codeBuffer)) {
+    const savedHash = Buffer.from(savedCodeHash, 'hex');
+    const codeHash = createHash('sha256').update(String(code)).digest();
+    if (savedHash.length !== codeHash.length || !timingSafeEqual(savedHash, codeHash)) {
       throw new InvalidCodeError('Invalid code');
     }
 

@@ -23,11 +23,6 @@ export const USER_ROLE = {
 
 export const ITEMS_PER_PAGE = 20;
 
-export const CACHE_TTL = {
-  PRODUCTS: 300, // 5 minutes
-  CATEGORIES: 1800, // 30 minutes
-  BRANDS: 1800, // 30 minutes
-  SMS_CODE: 600, // 10 minutes
-} as const;
+export const SMS_CODE_TTL = 600;
 
 export const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;

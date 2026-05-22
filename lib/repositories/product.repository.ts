@@ -3,10 +3,14 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, PriceRange } from '@/types/api';
 import { decodeCursor, encodeCursor } from '@/lib/pagination';
 import { InvalidCursorError } from '@/lib/errors';
-import type { IProductRepository } from './interfaces';
+import { categoryRepository } from './category.repository';
+import type { IProductRepository, ICategoryRepository } from './interfaces';
 
 export class ProductRepository implements IProductRepository {
-  constructor(private prismaClient: PrismaClient = prisma) {}
+  constructor(
+    private prismaClient: PrismaClient = prisma,
+    private categoryRepo: ICategoryRepository = categoryRepository
+  ) {}
 
   async findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>> {
     if (filters.sortBy === 'popular') {
@@ -270,7 +274,7 @@ export class ProductRepository implements IProductRepository {
     };
 
     if (filters.categoryId) {
-      const categoryIds = await this.findSelfAndDescendantIds(filters.categoryId);
+      const categoryIds = await this.categoryRepo.findSelfAndDescendantIds(filters.categoryId);
       where.categoryId = { in: categoryIds };
     }
 
@@ -307,34 +311,6 @@ export class ProductRepository implements IProductRepository {
     }
 
     return where;
-  }
-
-  private async findSelfAndDescendantIds(categoryId: string): Promise<string[]> {
-    const categories = await this.prismaClient.category.findMany({
-      where: { deletedAt: null },
-      select: { id: true, parentId: true },
-    });
-
-    const childrenByParentId = new Map<string, string[]>();
-    categories.forEach((category) => {
-      if (!category.parentId) return;
-      childrenByParentId.set(category.parentId, [...(childrenByParentId.get(category.parentId) ?? []), category.id]);
-    });
-
-    const ids: string[] = [];
-    const visitedIds = new Set<string>();
-    const existingIds = new Set(categories.map((category) => category.id));
-    const queue = [categoryId];
-
-    for (let index = 0; index < queue.length; index += 1) {
-      const id = queue[index];
-      if (!existingIds.has(id) || visitedIds.has(id)) continue;
-      visitedIds.add(id);
-      ids.push(id);
-      queue.push(...(childrenByParentId.get(id) ?? []));
-    }
-
-    return ids;
   }
 
   private buildCursorWhere(

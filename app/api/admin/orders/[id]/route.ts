@@ -3,8 +3,20 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { NotFoundError, isAppError } from '@/lib/errors';
+import { NotFoundError, ValidationError, isAppError } from '@/lib/errors';
+import { ORDER_STATUS } from '@/lib/constants';
 import { adminOrderStatusSchema } from '@/lib/validation/admin';
+
+type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
+
+const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  [ORDER_STATUS.NEW]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.SHIPPED, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DELIVERED],
+  [ORDER_STATUS.DELIVERED]: [],
+  [ORDER_STATUS.CANCELLED]: [],
+};
 
 function formatOrder(order: Prisma.OrderGetPayload<{
   include: {
@@ -98,9 +110,33 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     const input = adminOrderStatusSchema.parse(body);
-    const order = await prisma.order.update({
+    const currentOrder = await prisma.order.findUnique({
       where: { id },
+      select: { status: true },
+    });
+
+    if (!currentOrder) {
+      throw new NotFoundError('Order not found');
+    }
+
+    if (
+      currentOrder.status !== input.status &&
+      !ALLOWED_STATUS_TRANSITIONS[currentOrder.status].includes(input.status)
+    ) {
+      throw new ValidationError('Недопустимый переход статуса заказа');
+    }
+
+    const updateResult = await prisma.order.updateMany({
+      where: { id, status: currentOrder.status },
       data: { status: input.status },
+    });
+
+    if (updateResult.count === 0) {
+      throw new ValidationError('Статус заказа изменился, обновите страницу');
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id },
       include: {
         user: {
           select: {
@@ -122,6 +158,10 @@ export async function PATCH(
         },
       },
     });
+
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
 
     return NextResponse.json({ success: true, data: formatOrder(order) });
   } catch (error: unknown) {
