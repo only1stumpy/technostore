@@ -12,6 +12,13 @@ export class CartRepository implements ICartRepository {
       where: { userId },
       include: {
         items: {
+          where: {
+            product: {
+              deletedAt: null,
+              category: { deletedAt: null },
+              brand: { deletedAt: null },
+            },
+          },
           include: {
             product: {
               select: {

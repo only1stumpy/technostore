@@ -10,6 +10,7 @@ import { adminCategorySchema } from '@/lib/validation/admin';
 async function invalidateCategoryCache() {
   await deleteCacheKey(CACHE_KEYS.categories);
   await invalidateCache('products:list:*');
+  await invalidateCache('products:filters:*');
 }
 
 export async function PATCH(

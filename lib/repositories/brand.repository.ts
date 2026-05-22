@@ -7,9 +7,20 @@ export class BrandRepository implements IBrandRepository {
   constructor(private prismaClient: PrismaClient = prisma) {}
 
   async findAll(): Promise<Brand[]> {
+    return this.findByCategoryIds();
+  }
+
+  async findByCategoryIds(categoryIds?: string[]): Promise<Brand[]> {
+    const productWhere = {
+      deletedAt: null,
+      category: { deletedAt: null },
+      ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
+    };
+
     const result = await this.prismaClient.brand.findMany({
       where: {
         deletedAt: null,
+        products: { some: productWhere },
       },
       select: {
         id: true,
@@ -18,9 +29,7 @@ export class BrandRepository implements IBrandRepository {
         _count: {
           select: {
             products: {
-              where: {
-                deletedAt: null,
-              },
+              where: productWhere,
             },
           },
         },

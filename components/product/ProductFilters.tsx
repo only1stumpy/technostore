@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import type { Brand } from '@/types/api';
+import { useState, useEffect, useRef } from 'react';
+import type { Brand, PriceRange, ProductFilterMetadata } from '@/types/api';
 
 interface ProductFiltersProps {
   filters?: FilterState;
+  categoryId?: string;
   onFilterChange: (filters: FilterState) => void;
 }
 
@@ -18,8 +19,9 @@ export interface FilterState {
   sortOrder: 'asc' | 'desc';
 }
 
-export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps) {
+export function ProductFilters({ filters, categoryId, onFilterChange }: ProductFiltersProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [priceRange, setPriceRange] = useState<PriceRange>({ min: null, max: null });
   const [error, setError] = useState<string | null>(null);
   const [localFilters, setLocalFilters] = useState<FilterState>({
     sortBy: 'createdAt',
@@ -31,22 +33,61 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
     stock: true,
     sort: true,
   });
+  const filtersRef = useRef(filters);
+  const localFiltersRef = useRef(localFilters);
+  const onFilterChangeRef = useRef(onFilterChange);
+
+  const currentFilters = filters ?? localFilters;
 
   useEffect(() => {
-    fetch('/api/brands').then((r) => {
-      if (!r.ok) throw new Error('Не удалось загрузить бренды');
+    filtersRef.current = filters;
+    localFiltersRef.current = localFilters;
+    onFilterChangeRef.current = onFilterChange;
+  }, [filters, localFilters, onFilterChange]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (categoryId) params.set('categoryId', categoryId);
+
+    fetch(`/api/products/filters${params.toString() ? `?${params}` : ''}`).then((r) => {
+      if (!r.ok) throw new Error('Не удалось загрузить фильтры');
       return r.json();
-    }).then((brds) => {
-      setBrands(Array.isArray(brds) ? brds : []);
+    }).then((metadata: ProductFilterMetadata) => {
+      const nextBrands = Array.isArray(metadata.brands) ? metadata.brands : [];
+      const nextPriceRange = metadata.priceRange ?? { min: null, max: null };
+      const activeFilters = filtersRef.current ?? localFiltersRef.current;
+      const nextFilters = { ...activeFilters };
+      setBrands(nextBrands);
+      setPriceRange(nextPriceRange);
       setError(null);
+
+      if (nextFilters.brandId && !nextBrands.some((brand) => brand.id === nextFilters.brandId)) {
+        nextFilters.brandId = undefined;
+      }
+      if (nextPriceRange.min !== null && nextFilters.minPrice !== undefined && nextFilters.minPrice < nextPriceRange.min) {
+        nextFilters.minPrice = undefined;
+      }
+      if (nextPriceRange.max !== null && nextFilters.maxPrice !== undefined && nextFilters.maxPrice > nextPriceRange.max) {
+        nextFilters.maxPrice = undefined;
+      }
+
+      if (
+        nextFilters.brandId !== activeFilters.brandId ||
+        nextFilters.minPrice !== activeFilters.minPrice ||
+        nextFilters.maxPrice !== activeFilters.maxPrice
+      ) {
+        if (!filtersRef.current) {
+          setLocalFilters(nextFilters);
+        }
+        onFilterChangeRef.current(nextFilters);
+      }
     }).catch((error) => {
       console.error('Не удалось загрузить фильтры:', error);
       setError('Не удалось загрузить фильтры. Обновите страницу.');
       setBrands([]);
+      setPriceRange({ min: null, max: null });
     });
-  }, []);
-
-  const currentFilters = filters ?? localFilters;
+  }, [categoryId]);
 
   const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     const newFilters = { ...currentFilters, [key]: value };
@@ -69,6 +110,59 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
       )}
 
       <div>
+        <button
+          onClick={() => toggleSection('sort')}
+          className="flex items-center justify-between w-full font-bold text-lg mb-3"
+        >
+          <span>Сортировка</span>
+          <span className="text-gray-400">{expandedSections.sort ? '−' : '+'}</span>
+        </button>
+        {expandedSections.sort && (
+          <div className="space-y-2">
+            <select
+              value={currentFilters.sortBy}
+              onChange={(e) => updateFilter('sortBy', e.target.value as FilterState['sortBy'])}
+              className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
+            >
+              <option value="createdAt">Сначала новые</option>
+              <option value="price">Цена</option>
+              <option value="popular">Популярность</option>
+              <option value="name">Название</option>
+            </select>
+            <select
+              value={currentFilters.sortOrder}
+              onChange={(e) => updateFilter('sortOrder', e.target.value as FilterState['sortOrder'])}
+              className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
+            >
+              <option value="desc">По убыванию</option>
+              <option value="asc">По возрастанию</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-gray-200 pt-6">
+        <button
+          onClick={() => toggleSection('stock')}
+          className="flex items-center justify-between w-full font-bold text-lg mb-3"
+        >
+          <span>Наличие</span>
+          <span className="text-gray-400">{expandedSections.stock ? '−' : '+'}</span>
+        </button>
+        {expandedSections.stock && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={currentFilters.inStock || false}
+              onChange={(e) => updateFilter('inStock', e.target.checked || undefined)}
+              className="accent-red-600"
+            />
+            <span className="text-sm">Только в наличии</span>
+          </label>
+        )}
+      </div>
+
+      <div className="border-t border-gray-200 pt-6">
         <button
           onClick={() => toggleSection('brand')}
           className="flex items-center justify-between w-full font-bold text-lg mb-3"
@@ -123,8 +217,9 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
               <label className="text-sm text-gray-600 mb-1 block">От</label>
               <input
                 type="number"
-                min="0"
-                placeholder="0"
+                min={priceRange.min ?? 0}
+                max={priceRange.max ?? undefined}
+                placeholder={priceRange.min !== null ? String(priceRange.min) : '0'}
                 value={currentFilters.minPrice || ''}
                 onChange={(e) =>
                   updateFilter('minPrice', e.target.value ? Number(e.target.value) : undefined)
@@ -136,8 +231,9 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
               <label className="text-sm text-gray-600 mb-1 block">До</label>
               <input
                 type="number"
-                min="0"
-                placeholder="∞"
+                min={priceRange.min ?? 0}
+                max={priceRange.max ?? undefined}
+                placeholder={priceRange.max !== null ? String(priceRange.max) : '∞'}
                 value={currentFilters.maxPrice || ''}
                 onChange={(e) =>
                   updateFilter('maxPrice', e.target.value ? Number(e.target.value) : undefined)
@@ -145,59 +241,6 @@ export function ProductFilters({ filters, onFilterChange }: ProductFiltersProps)
                 className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
               />
             </div>
-          </div>
-        )}
-      </div>
-
-      <div className="border-t border-gray-200 pt-6">
-        <button
-          onClick={() => toggleSection('stock')}
-          className="flex items-center justify-between w-full font-bold text-lg mb-3"
-        >
-          <span>Наличие</span>
-          <span className="text-gray-400">{expandedSections.stock ? '−' : '+'}</span>
-        </button>
-        {expandedSections.stock && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={currentFilters.inStock || false}
-              onChange={(e) => updateFilter('inStock', e.target.checked || undefined)}
-              className="accent-red-600"
-            />
-            <span className="text-sm">Только в наличии</span>
-          </label>
-        )}
-      </div>
-
-      <div className="border-t border-gray-200 pt-6">
-        <button
-          onClick={() => toggleSection('sort')}
-          className="flex items-center justify-between w-full font-bold text-lg mb-3"
-        >
-          <span>Сортировка</span>
-          <span className="text-gray-400">{expandedSections.sort ? '−' : '+'}</span>
-        </button>
-        {expandedSections.sort && (
-          <div className="space-y-2">
-            <select
-              value={currentFilters.sortBy}
-              onChange={(e) => updateFilter('sortBy', e.target.value as FilterState['sortBy'])}
-              className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
-            >
-              <option value="createdAt">Сначала новые</option>
-              <option value="price">Цена</option>
-              <option value="popular">Популярность</option>
-              <option value="name">Название</option>
-            </select>
-            <select
-              value={currentFilters.sortOrder}
-              onChange={(e) => updateFilter('sortOrder', e.target.value as FilterState['sortOrder'])}
-              className="w-full px-3 py-2 border border-gray-300 focus:border-red-600 focus:outline-none"
-            >
-              <option value="desc">По убыванию</option>
-              <option value="asc">По возрастанию</option>
-            </select>
           </div>
         )}
       </div>

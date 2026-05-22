@@ -19,6 +19,7 @@ function formatProduct(product: Prisma.ProductGetPayload<{ include: { category: 
 
 async function invalidateProductCache(id?: string) {
   await invalidateCache('products:list:*');
+  await invalidateCache('products:filters:*');
   if (id) {
     await deleteCacheKey(CACHE_KEYS.product(id));
   }

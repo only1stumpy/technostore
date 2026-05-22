@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
+import { ToastContainer, useToast } from '@/components/ui/Toast';
 
 export default function LoginPage() {
   const router = useRouter();
+  const toast = useToast();
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -30,6 +32,10 @@ export default function LoginPage() {
 
       if (!res.ok) {
         throw new Error(data.error || 'Ошибка отправки кода');
+      }
+
+      if (data.code) {
+        toast.info(`Тестовый код: ${data.code}`);
       }
 
       setStep('code');
@@ -69,6 +75,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary">
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
       <Container>
         <div className="max-w-md mx-auto bg-white rounded-lg border border-border p-8">
           <h1 className="text-3xl font-bold text-center mb-6 uppercase" style={{ fontFamily: 'var(--font-oswald)' }}>

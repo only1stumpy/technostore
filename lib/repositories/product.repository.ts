@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma, PrismaClient } from '@prisma/client';
-import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail } from '@/types/api';
+import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, PriceRange } from '@/types/api';
 import { decodeCursor, encodeCursor } from '@/lib/pagination';
 import { InvalidCursorError } from '@/lib/errors';
 import type { IProductRepository } from './interfaces';
@@ -13,7 +13,7 @@ export class ProductRepository implements IProductRepository {
       return this.findManyByPopularity(filters);
     }
 
-    const where = this.buildWhereClause(filters);
+    const where = await this.buildWhereClause(filters);
 
     const products = await this.prismaClient.product.findMany({
       where,
@@ -62,6 +62,24 @@ export class ProductRepository implements IProductRepository {
         hasMore,
         limit: filters.limit,
       },
+    };
+  }
+
+  async getPriceRange(categoryIds?: string[]): Promise<PriceRange> {
+    const result = await this.prismaClient.product.aggregate({
+      where: {
+        deletedAt: null,
+        category: { deletedAt: null },
+        brand: { deletedAt: null },
+        ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
+      },
+      _min: { price: true },
+      _max: { price: true },
+    });
+
+    return {
+      min: result._min.price === null ? null : Number(result._min.price),
+      max: result._max.price === null ? null : Number(result._max.price),
     };
   }
 
@@ -121,7 +139,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   private async findManyByPopularity(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>> {
-    const where = this.buildWhereClause({ ...filters, cursor: undefined });
+    const where = await this.buildWhereClause({ ...filters, cursor: undefined });
     const cursor = filters.cursor ? decodeCursor(filters.cursor) : null;
     const cursorPopularity = cursor ? Number(cursor.sortField) : null;
 
@@ -244,7 +262,7 @@ export class ProductRepository implements IProductRepository {
     };
   }
 
-  private buildWhereClause(filters: ProductFilters): Prisma.ProductWhereInput {
+  private async buildWhereClause(filters: ProductFilters): Promise<Prisma.ProductWhereInput> {
     const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       category: { deletedAt: null },
@@ -252,7 +270,8 @@ export class ProductRepository implements IProductRepository {
     };
 
     if (filters.categoryId) {
-      where.categoryId = filters.categoryId;
+      const categoryIds = await this.findSelfAndDescendantIds(filters.categoryId);
+      where.categoryId = { in: categoryIds };
     }
 
     if (filters.brandId) {
@@ -288,6 +307,34 @@ export class ProductRepository implements IProductRepository {
     }
 
     return where;
+  }
+
+  private async findSelfAndDescendantIds(categoryId: string): Promise<string[]> {
+    const categories = await this.prismaClient.category.findMany({
+      where: { deletedAt: null },
+      select: { id: true, parentId: true },
+    });
+
+    const childrenByParentId = new Map<string, string[]>();
+    categories.forEach((category) => {
+      if (!category.parentId) return;
+      childrenByParentId.set(category.parentId, [...(childrenByParentId.get(category.parentId) ?? []), category.id]);
+    });
+
+    const ids: string[] = [];
+    const visitedIds = new Set<string>();
+    const existingIds = new Set(categories.map((category) => category.id));
+    const queue = [categoryId];
+
+    for (let index = 0; index < queue.length; index += 1) {
+      const id = queue[index];
+      if (!existingIds.has(id) || visitedIds.has(id)) continue;
+      visitedIds.add(id);
+      ids.push(id);
+      queue.push(...(childrenByParentId.get(id) ?? []));
+    }
+
+    return ids;
   }
 
   private buildCursorWhere(

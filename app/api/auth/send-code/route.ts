@@ -12,11 +12,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { phone } = sendCodeSchema.parse(body);
 
-    await authService.sendVerificationCode(phone);
+    const result = await authService.sendVerificationCode(phone);
 
     return NextResponse.json({
       success: true,
       message: 'Код отправлен',
+      ...result,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

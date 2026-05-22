@@ -20,6 +20,7 @@ function formatBrand(brand: Prisma.BrandGetPayload<{ include: { _count: { select
 async function invalidateBrandCache() {
   await deleteCacheKey(CACHE_KEYS.brands);
   await invalidateCache('products:list:*');
+  await invalidateCache('products:filters:*');
 }
 
 export async function GET() {

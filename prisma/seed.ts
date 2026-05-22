@@ -7,6 +7,7 @@ const categoriesData = [
   { name: 'Планшеты', slug: 'tablets' },
   { name: 'Аксессуары', slug: 'accessories' },
   { name: 'Мониторы', slug: 'monitors' },
+  { name: 'Комплектующие', slug: 'components' },
 ]
 
 const brandsData = [
@@ -17,6 +18,13 @@ const brandsData = [
   { name: 'Xiaomi', slug: 'xiaomi', logo: '/logos/xiaomi.png' },
   { name: 'ASUS', slug: 'asus', logo: '/logos/asus.png' },
   { name: 'Dell', slug: 'dell', logo: '/logos/dell.png' },
+  { name: 'BlackView', slug: 'blackview', logo: '/logos/blackview.png' },
+  { name: 'PocketBook', slug: 'pocketbook', logo: '/logos/pocketbook.png' },
+  { name: 'Gembird', slug: 'gembird', logo: '/logos/gembird.png' },
+  { name: 'Xilence', slug: 'xilence', logo: '/logos/xilence.png' },
+  { name: 'be quiet!', slug: 'be-quiet', logo: '/logos/be-quiet.png' },
+  { name: 'Arctic', slug: 'arctic', logo: '/logos/arctic.png' },
+  { name: 'Spire', slug: 'spire', logo: '/logos/spire.png' },
 ]
 
 const productsData = [
@@ -44,6 +52,27 @@ const productsData = [
   ['Dell UltraSharp U2723QE', 'dell-ultrasharp-u2723qe', 'Профессиональный 4K-монитор Dell с USB‑C хабом.', 69999, 5, 'monitors', 'dell', ['27″ 4K', 'IPS Black', 'USB‑C 90 Вт', 'HDR']],
   ['ASUS ProArt PA278QV', 'asus-proart-pa278qv', 'Монитор ASUS для дизайнеров и работы с цветом.', 34999, 8, 'monitors', 'asus', ['27″ QHD', 'IPS', '100% sRGB', 'CalMAN Verified']],
   ['HP M24fwa', 'hp-m24fwa', 'Тонкий домашний монитор HP со встроенными динамиками.', 14999, 22, 'monitors', 'hp', ['23.8″ FHD', 'IPS', '75 Гц', '2 динамика']],
+  ['BlackView TAB50 Wi-Fi 4/128GB Space Grey', 'blackview-tab50-wi-fi-4-128gb-grey', 'Компактный планшет BlackView с HD-экраном и 128 ГБ памяти.', 1899, 18, 'tablets', 'blackview', ['8″ HD', 'Rockchip', '4 ГБ RAM', '128 ГБ']],
+  ['BlackView Link2 Wi-Fi + 4G 4/128GB Black', 'blackview-link2-4g-4-128gb-black', 'Планшет BlackView с поддержкой 4G для учебы, видео и поездок.', 1899, 16, 'tablets', 'blackview', ['8.68″ WXGA', 'UniSOC', '4 ГБ RAM', '128 ГБ']],
+  ['Lenovo TAB One TB305FU 4/64GB Luna Grey', 'lenovo-tab-one-tb305fu-4-64gb-grey', 'Легкий планшет Lenovo TAB One с чехлом в комплекте.', 1999, 20, 'tablets', 'lenovo', ['8.7″ WXGA', 'MediaTek', '4 ГБ RAM', '64 ГБ']],
+  ['BlackView TAB60 Pro LTE 4/128GB Blue', 'blackview-tab60-pro-lte-4-128gb-blue', 'Планшет BlackView TAB60 Pro с большим экраном и мобильным интернетом.', 2239, 14, 'tablets', 'blackview', ['10.1″ HD', 'UniSOC', '4 ГБ RAM', '128 ГБ']],
+  ['PocketBook 619 Verse Lite Midnight Grey', 'pocketbook-619-verse-lite-grey', 'Электронная книга PocketBook с компактным экраном для чтения каждый день.', 2699, 12, 'tablets', 'pocketbook', ['6″ E Ink', '1024×758', '512 МБ RAM', '8 ГБ']],
+  ['Lenovo TAB TB311FU Wi-Fi 4/64GB Gray', 'lenovo-tab-tb311fu-4-64gb-gray', 'Планшет Lenovo TAB с WUXGA-дисплеем и защитным чехлом.', 2849, 15, 'tablets', 'lenovo', ['10.1″ WUXGA', 'MediaTek', '4 ГБ RAM', '64 ГБ']],
+  ['PocketBook 629 Verse Bright Blue', 'pocketbook-629-verse-bright-blue', 'Электронная книга PocketBook Verse с подсветкой и 8 ГБ памяти.', 2899, 10, 'tablets', 'pocketbook', ['6″ E Ink', '1024×758', '512 МБ RAM', '8 ГБ']],
+  ['Samsung Galaxy Tab A11 8.7 Wi-Fi 4/64GB Gray', 'samsung-galaxy-tab-a11-87-wi-fi-4-64gb-gray', 'Компактный планшет Samsung Galaxy Tab A11 для учебы и развлечений.', 3299, 17, 'tablets', 'samsung', ['8.7″ WXGA', '90 Гц', '4 ГБ RAM', '64 ГБ']],
+  ['Samsung Galaxy Tab A9+ 11 Wi-Fi 8/256GB Graphite', 'samsung-galaxy-tab-a9-plus-11-wi-fi-8-256gb', 'Планшет Samsung Galaxy Tab A9+ с большим экраном и 256 ГБ памяти.', 4899, 9, 'tablets', 'samsung', ['11″ FHD', 'Qualcomm', '8 ГБ RAM', '256 ГБ']],
+  ['Gembird TG-P-01 Thermal Pad 100x100x1mm', 'gembird-tg-p-01-thermal-pad', 'Термопрокладка Gembird для охлаждения компонентов ПК.', 35, 80, 'components', 'gembird', ['100×100×1 мм', 'для CPU/GPU', 'теплопроводящая прокладка', 'универсальная']],
+  ['Gembird TG-G3.0-01 Thermal Paste 3g', 'gembird-tg-g30-thermal-paste-3g', 'Термопаста Gembird для процессоров и видеокарт.', 45, 90, 'components', 'gembird', ['3 г', 'для CPU/GPU', 'шприц', 'серый состав']],
+  ['Xilence LGA1700 Air Cooler Mount Kit XZ175', 'xilence-lga1700-air-cooler-mount-kit-xz175', 'Комплект креплений Xilence для установки воздушного кулера на LGA1700.', 49, 35, 'components', 'xilence', ['LGA1700', 'для воздушных кулеров', 'монтажный комплект', 'XZ175']],
+  ['Gembird Fancase3 120mm Case Fan', 'gembird-fancase3-120mm-case-fan', 'Корпусной вентилятор Gembird для базового охлаждения системного блока.', 69, 60, 'components', 'gembird', ['120×120×25 мм', 'корпусной', 'тихая работа', '3-pin']],
+  ['Xilence XPF80.R.PWM Case Fan', 'xilence-xpf80-r-pwm-case-fan', 'Компактный PWM-вентилятор Xilence для корпуса ПК.', 79, 50, 'components', 'xilence', ['80 мм', 'PWM', 'корпусной', 'XF040']],
+  ['Xilence XPF120.R.PWM Case Fan', 'xilence-xpf120-r-pwm-case-fan', '120-мм корпусной вентилятор Xilence с PWM-управлением.', 99, 48, 'components', 'xilence', ['120 мм', 'PWM', 'корпусной', 'XF042']],
+  ['Gembird Virtus Plus USB Sound Card', 'gembird-virtus-plus-usb-sound-card', 'Внешняя USB-звуковая карта Gembird для наушников и микрофона.', 129, 30, 'components', 'gembird', ['USB', 'аудиовыход', 'микрофонный вход', 'SC-USB2.0-01']],
+  ['be quiet! DC2 Thermal Paste 3g', 'be-quiet-dc2-thermal-paste-3g', 'Термопаста be quiet! DC2 для эффективного охлаждения процессора.', 129, 42, 'components', 'be-quiet', ['3 г', 'для CPU/GPU', 'шприц', 'BZ004']],
+  ['Spire 420W OEM ATX Power Supply', 'spire-420w-oem-atx-power-supply', 'Блок питания Spire 420W для офисных и домашних сборок.', 199, 18, 'components', 'spire', ['420 Вт', 'ATX', 'OEM', 'без кабеля']],
+  ['Arctic Alpine 17 CPU Cooler', 'arctic-alpine-17-cpu-cooler', 'Процессорный кулер Arctic Alpine 17 для платформ Intel.', 219, 24, 'components', 'arctic', ['Intel', 'низкий профиль', 'активное охлаждение', 'Alpine 17']],
+  ['be quiet! Pure Wings 3 120mm Case Fan', 'be-quiet-pure-wings-3-120mm-case-fan', 'Тихий корпусной вентилятор be quiet! Pure Wings 3 для стабильного воздушного потока.', 229, 28, 'components', 'be-quiet', ['120 мм', 'корпусной', 'тихая работа', 'BL106']],
+  ['ASUS TUF Gaming TF120 ARGB Case Fan', 'asus-tuf-gaming-tf120-argb-case-fan', 'ARGB-вентилятор ASUS TUF Gaming TF120 для игровых сборок.', 279, 22, 'components', 'asus', ['120 мм', 'ARGB', 'корпусной', 'TUF Gaming']],
 ] as const
 
 export async function seedDatabase() {

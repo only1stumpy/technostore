@@ -204,6 +204,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
         <div className="lg:w-1/4">
           <ProductFilters
             filters={filters}
+            categoryId={category.id}
             onFilterChange={handleFilterChange}
           />
         </div>

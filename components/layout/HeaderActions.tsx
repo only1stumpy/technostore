@@ -30,13 +30,16 @@ export function HeaderActions({ variant = 'desktop', onNavigate }: HeaderActions
         }
 
         if (!response.ok) {
+          setUser(null);
           return;
         }
 
         const data: { user: CurrentUser } = await response.json();
         setUser(data.user);
       } catch {
-        return;
+        if (mounted) {
+          setUser(null);
+        }
       } finally {
         if (mounted) {
           setIsLoading(false);

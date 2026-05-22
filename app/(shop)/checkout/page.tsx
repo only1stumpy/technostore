@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function CheckoutPage() {
 
     async function fetchProfile() {
       try {
+        setProfileError(null);
         const response = await fetch('/api/auth/me');
         if (!response.ok || !mounted) return;
 
@@ -42,6 +44,9 @@ export default function CheckoutPage() {
         setName(data.user.name ?? '');
         setAddress(data.user.address ?? '');
       } catch {
+        if (mounted) {
+          setProfileError('Не удалось загрузить данные профиля');
+        }
       } finally {
         if (mounted) {
           setIsProfileLoading(false);
@@ -116,6 +121,11 @@ export default function CheckoutPage() {
   return (
     <Container className="py-10">
       {pageHeader}
+      {profileError && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {profileError}
+        </div>
+      )}
       <CheckoutForm userId={userId} items={items} totalAmount={totalAmount} initialPhone={phone} initialName={name} initialAddress={address} />
     </Container>
   );

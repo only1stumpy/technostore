@@ -9,7 +9,7 @@ export default function NotFound() {
       <Card>
         <CardContent className="flex min-h-96 flex-col items-center justify-center gap-6 text-center">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-primary">404</p>
+            <p className="text-8xl font-black uppercase tracking-[0.1em] text-primary md:text-9xl">404</p>
             <h1 className="mt-3 text-4xl font-black">Страница не найдена</h1>
             <p className="mt-2 text-muted-foreground">Проверьте адрес или вернитесь в каталог TechnoStore</p>
           </div>

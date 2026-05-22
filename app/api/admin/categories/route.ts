@@ -20,6 +20,7 @@ function formatCategory(category: Prisma.CategoryGetPayload<{ include: { _count:
 async function invalidateCategoryCache() {
   await deleteCacheKey(CACHE_KEYS.categories);
   await invalidateCache('products:list:*');
+  await invalidateCache('products:filters:*');
 }
 
 export async function GET() {

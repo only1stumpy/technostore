@@ -1,7 +1,7 @@
 import type { Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
 
 export interface IAuthService {
-  sendVerificationCode(phone: string): Promise<void>;
+  sendVerificationCode(phone: string): Promise<{ code?: string }>;
   verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{
     user: {
       id: string;

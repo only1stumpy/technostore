@@ -90,6 +90,16 @@ export type Brand = {
   productCount: number;
 };
 
+export type PriceRange = {
+  min: number | null;
+  max: number | null;
+};
+
+export type ProductFilterMetadata = {
+  brands: Brand[];
+  priceRange: PriceRange;
+};
+
 export type CursorPaginatedResponse<T> = {
   data: T[];
   pagination: {

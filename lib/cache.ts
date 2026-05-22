@@ -59,6 +59,7 @@ export const CACHE_KEYS = {
   brands: 'brands:all',
   product: (id: string) => `product:${id}`,
   productList: (hash: string) => `products:list:${hash}`,
+  productFilters: (categoryId?: string) => `products:filters:${categoryId ?? 'all'}`,
 };
 
 export const CACHE_TTL = {

@@ -1,16 +1,19 @@
-import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, Brand, CategoryTree, Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
+import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, PriceRange, Brand, CategoryTree, Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
 
 export interface IProductRepository {
   findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>>;
   findById(id: string): Promise<ProductDetail | null>;
+  getPriceRange(categoryIds?: string[]): Promise<PriceRange>;
 }
 
 export interface IBrandRepository {
   findAll(): Promise<Brand[]>;
+  findByCategoryIds(categoryIds?: string[]): Promise<Brand[]>;
 }
 
 export interface ICategoryRepository {
   findAllAsTree(): Promise<CategoryTree[]>;
+  findSelfAndDescendantIds(categoryId: string): Promise<string[]>;
 }
 
 export interface ICartRepository {

@@ -19,7 +19,7 @@ export class AuthService implements IAuthService {
     private sms: SmsService = smsService
   ) {}
 
-  async sendVerificationCode(phone: string): Promise<void> {
+  async sendVerificationCode(phone: string): Promise<{ code?: string }> {
     const normalizedPhone = normalizePhone(phone);
 
     if (!validatePhone(normalizedPhone)) {
@@ -44,6 +44,8 @@ export class AuthService implements IAuthService {
     if (!result.success) {
       throw new ConfigurationError('Failed to send SMS');
     }
+
+    return process.env.SMS_PROVIDER === 'mock' ? { code } : {};
   }
 
   async verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{

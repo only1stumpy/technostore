@@ -10,6 +10,7 @@ import { adminBrandSchema } from '@/lib/validation/admin';
 async function invalidateBrandCache() {
   await deleteCacheKey(CACHE_KEYS.brands);
   await invalidateCache('products:list:*');
+  await invalidateCache('products:filters:*');
 }
 
 export async function PATCH(
