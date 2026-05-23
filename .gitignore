@@ -51,7 +51,6 @@ kangentic.local.json
 
 .agents/
 .claude/
-docs/
 
 AGENTS.md
 CLAUDE.md
