@@ -3,6 +3,8 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ComparisonBar } from "@/components/product/ComparisonBar";
+import { ComparisonInitializer } from "@/components/product/ComparisonInitializer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -42,10 +44,12 @@ export default function RootLayout({
       lang="ru"
       className={`${inter.variable} ${oswald.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col pb-28 lg:pb-24">
+        <ComparisonInitializer />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <ComparisonBar />
       </body>
     </html>
   );

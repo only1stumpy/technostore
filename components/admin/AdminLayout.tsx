@@ -12,7 +12,10 @@ const navItems = [
   { href: '/admin/categories', label: 'Категории' },
   { href: '/admin/brands', label: 'Бренды' },
   { href: '/admin/orders', label: 'Заказы' },
+  { href: '/admin/reviews', label: 'Отзывы' },
+  { href: '/admin/promo-codes', label: 'Промокоды' },
   { href: '/admin/users', label: 'Пользователи' },
+  { href: '/admin/action-logs', label: 'Журнал' },
 ];
 
 interface AdminLayoutProps {

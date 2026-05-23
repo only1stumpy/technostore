@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
 import { NotFoundError, isAppError } from '@/lib/errors';
 import { adminBrandSchema } from '@/lib/validation/admin';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 async function invalidateBrandCache() {
   await deleteCacheKey(CACHE_KEYS.brands);
@@ -18,14 +19,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const { id } = await params;
     const body = await request.json();
     const input = adminBrandSchema.parse(body);
     const existingBrand = await prisma.brand.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, name: true, slug: true, logo: true },
     });
 
     if (!existingBrand) {
@@ -51,6 +52,24 @@ export async function PATCH(
     });
 
     await invalidateBrandCache();
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'brand.update',
+      entityType: 'brand',
+      entityId: brand.id,
+      metadata: {
+        from: {
+          name: existingBrand.name,
+          slug: existingBrand.slug,
+          logo: existingBrand.logo,
+        },
+        to: {
+          name: brand.name,
+          slug: brand.slug,
+          logo: brand.logo,
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -90,12 +109,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const { id } = await params;
     const brand = await prisma.brand.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, name: true, slug: true },
     });
 
     if (!brand) {
@@ -118,6 +137,16 @@ export async function DELETE(
       data: { deletedAt: new Date() },
     });
     await invalidateBrandCache();
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'brand.delete',
+      entityType: 'brand',
+      entityId: brand.id,
+      metadata: {
+        name: brand.name,
+        slug: brand.slug,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

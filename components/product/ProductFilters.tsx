@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { Brand, PriceRange, ProductFilterMetadata } from '@/types/api';
+import type { Brand, PriceRange, ProductFilterMetadata, SpecFacet } from '@/types/api';
 
 interface ProductFiltersProps {
   filters?: FilterState;
@@ -15,6 +15,7 @@ export interface FilterState {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  specs?: Record<string, string[]>;
   sortBy: 'price' | 'createdAt' | 'name' | 'popular';
   sortOrder: 'asc' | 'desc';
 }
@@ -22,12 +23,13 @@ export interface FilterState {
 export function ProductFilters({ filters, categoryId, onFilterChange }: ProductFiltersProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: null, max: null });
+  const [specFacets, setSpecFacets] = useState<SpecFacet[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [localFilters, setLocalFilters] = useState<FilterState>({
     sortBy: 'createdAt',
     sortOrder: 'desc',
   });
-  const [expandedSections, setExpandedSections] = useState({
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     brand: true,
     price: true,
     stock: true,
@@ -55,10 +57,13 @@ export function ProductFilters({ filters, categoryId, onFilterChange }: ProductF
     }).then((metadata: ProductFilterMetadata) => {
       const nextBrands = Array.isArray(metadata.brands) ? metadata.brands : [];
       const nextPriceRange = metadata.priceRange ?? { min: null, max: null };
+      const nextSpecFacets = Array.isArray(metadata.specs) ? metadata.specs : [];
       const activeFilters = filtersRef.current ?? localFiltersRef.current;
       const nextFilters = { ...activeFilters };
       setBrands(nextBrands);
       setPriceRange(nextPriceRange);
+      setSpecFacets(nextSpecFacets);
+      setExpandedSections((currentSections) => nextSpecFacets.reduce((sections, facet) => ({ ...sections, [`spec:${facet.key}`]: currentSections[`spec:${facet.key}`] ?? true }), currentSections));
       setError(null);
 
       if (nextFilters.brandId && !nextBrands.some((brand) => brand.id === nextFilters.brandId)) {
@@ -70,11 +75,27 @@ export function ProductFilters({ filters, categoryId, onFilterChange }: ProductF
       if (nextPriceRange.max !== null && nextFilters.maxPrice !== undefined && nextFilters.maxPrice > nextPriceRange.max) {
         nextFilters.maxPrice = undefined;
       }
+      if (nextFilters.specs) {
+        const nextSpecs: Record<string, string[]> = {};
+
+        for (const facet of nextSpecFacets) {
+          const selectedValues = nextFilters.specs[facet.key] ?? [];
+          const availableValues = new Set(facet.values.map((item) => item.value));
+          const validValues = selectedValues.filter((value) => availableValues.has(value));
+
+          if (validValues.length > 0) {
+            nextSpecs[facet.key] = validValues;
+          }
+        }
+
+        nextFilters.specs = Object.keys(nextSpecs).length > 0 ? nextSpecs : undefined;
+      }
 
       if (
         nextFilters.brandId !== activeFilters.brandId ||
         nextFilters.minPrice !== activeFilters.minPrice ||
-        nextFilters.maxPrice !== activeFilters.maxPrice
+        nextFilters.maxPrice !== activeFilters.maxPrice ||
+        JSON.stringify(nextFilters.specs ?? {}) !== JSON.stringify(activeFilters.specs ?? {})
       ) {
         if (!filtersRef.current) {
           setLocalFilters(nextFilters);
@@ -86,6 +107,7 @@ export function ProductFilters({ filters, categoryId, onFilterChange }: ProductF
       setError('Не удалось загрузить фильтры. Обновите страницу.');
       setBrands([]);
       setPriceRange({ min: null, max: null });
+      setSpecFacets([]);
     });
   }, [categoryId]);
 
@@ -97,7 +119,23 @@ export function ProductFilters({ filters, categoryId, onFilterChange }: ProductF
     onFilterChange(newFilters);
   };
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
+  const toggleSpecFilter = (key: string, value: string) => {
+    const selectedValues = currentFilters.specs?.[key] ?? [];
+    const nextValues = selectedValues.includes(value)
+      ? selectedValues.filter((selectedValue) => selectedValue !== value)
+      : [...selectedValues, value];
+    const nextSpecs = { ...(currentFilters.specs ?? {}) };
+
+    if (nextValues.length > 0) {
+      nextSpecs[key] = nextValues;
+    } else {
+      delete nextSpecs[key];
+    }
+
+    updateFilter('specs', Object.keys(nextSpecs).length > 0 ? nextSpecs : undefined);
+  };
+
+  const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
@@ -244,6 +282,40 @@ export function ProductFilters({ filters, categoryId, onFilterChange }: ProductF
           </div>
         )}
       </div>
+
+      {specFacets.map((facet) => {
+        const sectionKey = `spec:${facet.key}`;
+        const selectedValues = currentFilters.specs?.[facet.key] ?? [];
+
+        return (
+          <div key={facet.key} className="border-t border-gray-200 pt-6">
+            <button
+              onClick={() => toggleSection(sectionKey)}
+              className="flex items-center justify-between w-full font-bold text-lg mb-3"
+            >
+              <span>{facet.label}</span>
+              <span className="text-gray-400">{expandedSections[sectionKey] ? '−' : '+'}</span>
+            </button>
+            {expandedSections[sectionKey] && (
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {facet.values.map((item) => (
+                  <label key={item.value} className="flex items-center gap-2 py-1.5 cursor-pointer hover:text-red-600 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={selectedValues.includes(item.value)}
+                      onChange={() => toggleSpecFilter(facet.key, item.value)}
+                      className="accent-red-600"
+                    />
+                    <span className="text-sm">
+                      {item.value} ({item.count})
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

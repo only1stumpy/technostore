@@ -9,6 +9,14 @@ import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductFilters, type FilterState } from '@/components/product/ProductFilters';
 import type { CategoryTree, ProductCard, CursorPaginatedResponse } from '@/types/api';
 
+function appendSpecFilters(params: URLSearchParams, specs: FilterState['specs']) {
+  for (const [key, values] of Object.entries(specs ?? {})) {
+    for (const value of values) {
+      params.append(`specs[${key}]`, value);
+    }
+  }
+}
+
 function flattenCategories(categories: CategoryTree[]): CategoryTree[] {
   return categories.flatMap((category) => [category, ...flattenCategories(category.children ?? [])]);
 }
@@ -157,6 +165,7 @@ function CatalogContent() {
       if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
       if (filters.inStock) params.set('inStock', 'true');
       if (searchQuery) params.set('search', searchQuery);
+      appendSpecFilters(params, filters.specs);
       params.set('sortBy', filters.sortBy);
       params.set('sortOrder', filters.sortOrder);
       params.set('limit', '24');

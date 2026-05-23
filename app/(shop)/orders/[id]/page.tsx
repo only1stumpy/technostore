@@ -2,21 +2,28 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { OrderItems } from '@/components/order/OrderItems';
 import { OrderStatus } from '@/components/order/OrderStatus';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
-import type { OrderDetail } from '@/types/api';
+import type { Cart, OrderDetail } from '@/types/api';
 import { formatDate, formatPrice } from '@/lib/utils';
+import { useCartStore } from '@/store/cartStore';
 
 type OrderResponse = {
   success: boolean;
   data?: OrderDetail;
   error?: string;
   code?: string;
+};
+
+type RepeatOrderResponse = {
+  success: boolean;
+  data?: Cart;
+  error?: string;
 };
 
 const statusDescriptions = {
@@ -30,9 +37,14 @@ const statusDescriptions = {
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const setCart = useCartStore((state) => state.setCart);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isRepeating, setIsRepeating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +83,54 @@ export default function OrderDetailPage() {
       mounted = false;
     };
   }, [params.id]);
+
+  async function cancelOrder() {
+    if (!order) return;
+
+    setIsCancelling(true);
+    setActionError(null);
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}/cancel`, { method: 'POST' });
+      const json: OrderResponse = await response.json();
+
+      if (!response.ok || !json.data) {
+        setActionError(json.error || 'Не удалось отменить заказ');
+        return;
+      }
+
+      setOrder(json.data);
+    } catch {
+      setActionError('Не удалось отменить заказ');
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
+  async function repeatOrder() {
+    if (!order) return;
+
+    setIsRepeating(true);
+    setActionError(null);
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}/repeat`, { method: 'POST' });
+      const json: RepeatOrderResponse = await response.json();
+
+      if (!response.ok || !json.data) {
+        setActionError(json.error || 'Не удалось повторить заказ');
+        return;
+      }
+
+      setCart(json.data);
+      router.push('/cart');
+      router.refresh();
+    } catch {
+      setActionError('Не удалось повторить заказ');
+    } finally {
+      setIsRepeating(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -115,9 +175,22 @@ export default function OrderDetailPage() {
           <h1 className="text-4xl font-black">Заказ #{order.id.slice(-6).toUpperCase()}</h1>
           <p className="mt-2 text-muted-foreground">Создан {formatDate(order.createdAt)}</p>
         </div>
-        <div className="space-y-2 md:text-right">
-          <OrderStatus status={order.status} />
-          <p className="text-sm text-muted-foreground">{statusDescriptions[order.status]}</p>
+        <div className="space-y-3 md:text-right">
+          <div className="space-y-2">
+            <OrderStatus status={order.status} />
+            <p className="text-sm text-muted-foreground">{statusDescriptions[order.status]}</p>
+          </div>
+          <div className="flex flex-wrap gap-2 md:justify-end">
+            {order.status === 'NEW' ? (
+              <Button variant="secondary" size="sm" isLoading={isCancelling} disabled={isCancelling || isRepeating} onClick={cancelOrder}>
+                Отменить заказ
+              </Button>
+            ) : null}
+            <Button size="sm" isLoading={isRepeating} disabled={isRepeating || isCancelling} onClick={repeatOrder}>
+              Повторить заказ
+            </Button>
+          </div>
+          {actionError ? <p className="text-sm font-semibold text-destructive">{actionError}</p> : null}
         </div>
       </div>
 
@@ -167,6 +240,16 @@ export default function OrderDetailPage() {
                 <span>Товары</span>
                 <span>{order.itemsCount} шт.</span>
               </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Сумма товаров</span>
+                <span>{formatPrice(order.subtotal ?? order.total)}</span>
+              </div>
+              {order.discountAmount ? (
+                <div className="flex items-center justify-between text-sm text-accent">
+                  <span>Скидка{order.promoCode ? ` · ${order.promoCode}` : ''}</span>
+                  <span>−{formatPrice(order.discountAmount)}</span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between border-t border-border pt-4 text-xl font-bold">
                 <span>К оплате</span>
                 <span>{formatPrice(order.total)}</span>

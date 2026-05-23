@@ -27,6 +27,11 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+export type ProductReviewSummary = {
+  ratingAverage: number | null;
+  reviewsCount: number;
+};
+
 export type ProductCard = {
   id: string;
   name: string;
@@ -34,6 +39,10 @@ export type ProductCard = {
   price: number;
   imageUrl: string | null;
   stock: number;
+  ratingAverage?: number | null;
+  reviewsCount?: number;
+  isFavorite?: boolean;
+  isCompared?: boolean;
   brand: {
     id: string;
     name: string;
@@ -70,6 +79,9 @@ export type ProductDetail = {
       slug: string;
     } | null;
   };
+  ratingAverage: number | null;
+  reviewsCount: number;
+  relatedProducts?: ProductCard[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -95,9 +107,16 @@ export type PriceRange = {
   max: number | null;
 };
 
+export type SpecFacet = {
+  key: string;
+  label: string;
+  values: Array<{ value: string; count: number }>;
+};
+
 export type ProductFilterMetadata = {
   brands: Brand[];
   priceRange: PriceRange;
+  specs: SpecFacet[];
 };
 
 export type CursorPaginatedResponse<T> = {
@@ -123,6 +142,7 @@ export type ProductFilters = {
   maxPrice?: number;
   inStock?: boolean;
   search?: string;
+  specs?: Record<string, string[]>;
   sortBy: 'price' | 'createdAt' | 'name' | 'popular';
   sortOrder: 'asc' | 'desc';
 };
@@ -142,6 +162,9 @@ export type Cart = {
   userId: string;
   items: CartItem[];
   totalAmount: number;
+  discountAmount?: number;
+  finalAmount?: number;
+  promoCode?: string | null;
 };
 
 export type OrderStatus = 'NEW' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
@@ -163,7 +186,10 @@ export type OrderItemPreview = {
 export type OrderSummary = {
   id: string;
   status: OrderStatus;
+  subtotal?: number;
+  discountAmount?: number;
   total: number;
+  promoCode?: string | null;
   recipientName: string;
   address: string;
   phone: string;
@@ -183,6 +209,62 @@ export type CreateOrderInput = {
   address: string;
   phone: string;
   comment?: string | null;
+  promoCode?: string | null;
+};
+
+export type FavoriteItem = ProductCard & {
+  addedAt: string;
+};
+
+export type FavoritesResponse = {
+  items: FavoriteItem[];
+  count: number;
+};
+
+export type ComparisonItem = ProductCard & {
+  specs: Record<string, unknown> | null;
+  addedAt: string;
+};
+
+export type ComparisonResponse = {
+  items: ComparisonItem[];
+  count: number;
+};
+
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export type ProductReview = {
+  id: string;
+  rating: number;
+  text: string;
+  status?: ReviewStatus;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string | null;
+  };
+};
+
+export type CreateReviewInput = {
+  productId: string;
+  rating: number;
+  text: string;
+};
+
+export type PromoCodeType = 'PERCENT' | 'FIXED';
+
+export type ApplyPromoCodeInput = {
+  code: string;
+};
+
+export type AppliedPromoCode = {
+  code: string;
+  type: PromoCodeType;
+  value: number;
+  discountAmount: number;
+  subtotal: number;
+  total: number;
 };
 
 export type AdminProduct = {
@@ -249,6 +331,67 @@ export type AdminUser = {
   role: 'USER' | 'ADMIN';
   ordersCount: number;
   createdAt: string;
+};
+
+export type AdminReview = ProductReview & {
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  user: {
+    id: string;
+    name: string | null;
+    phone: string;
+  };
+};
+
+export type AdminPromoCode = {
+  id: string;
+  code: string;
+  type: PromoCodeType;
+  value: number;
+  minOrderTotal: number;
+  usageLimit: number | null;
+  usedCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminStockProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  stock: number;
+  imageUrl: string | null;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  brand: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  updatedAt: string;
+};
+
+export type AdminActionLog = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  admin: {
+    id: string;
+    name: string | null;
+    phone: string;
+  };
 };
 
 export type AdminStats = {

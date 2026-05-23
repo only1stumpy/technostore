@@ -7,6 +7,24 @@ import type { ProductCard, CursorPaginatedResponse } from '@/types/api';
 import { productRepository } from '@/lib/repositories/product.repository';
 import { InvalidCursorError } from '@/lib/errors';
 
+function parseSpecFilters(searchParams: URLSearchParams) {
+  const specs: Record<string, string[]> = {};
+
+  for (const [param, value] of searchParams.entries()) {
+    const match = param.match(/^specs\[(.+)]$/);
+    const trimmedValue = value.trim();
+
+    if (!match || !trimmedValue) continue;
+
+    const key = match[1].trim();
+    if (!key) continue;
+
+    specs[key] = [...(specs[key] ?? []), trimmedValue];
+  }
+
+  return Object.keys(specs).length > 0 ? specs : undefined;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -20,6 +38,7 @@ export async function GET(request: NextRequest) {
       maxPrice: searchParams.get('maxPrice') || undefined,
       inStock: searchParams.get('inStock') || undefined,
       search: searchParams.get('search') || undefined,
+      specs: parseSpecFilters(searchParams),
       sortBy: searchParams.get('sortBy') || undefined,
       sortOrder: searchParams.get('sortOrder') || undefined,
     });

@@ -1,4 +1,4 @@
-import type { CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
+import type { Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/api';
 import { orderRepository } from '@/lib/repositories/order.repository';
 import type { IOrderRepository } from '@/lib/repositories/interfaces';
 import type { IOrderService } from './interfaces';
@@ -16,6 +16,14 @@ export class OrderService implements IOrderService {
 
   async getOrder(userId: string, orderId: string): Promise<OrderDetail | null> {
     return this.orderRepo.findByIdForUser(userId, orderId);
+  }
+
+  async cancelOrder(userId: string, orderId: string): Promise<OrderDetail> {
+    return this.orderRepo.cancelByUser(userId, orderId);
+  }
+
+  async repeatOrder(userId: string, orderId: string): Promise<Cart> {
+    return this.orderRepo.repeatForUser(userId, orderId);
   }
 }
 

@@ -5,7 +5,8 @@ import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
 import { adminPaginationSchema, adminProductSchema } from '@/lib/validation/admin';
-import { isAppError } from '@/lib/errors';
+import { ValidationError, isAppError } from '@/lib/errors';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 function formatProduct(product: Prisma.ProductGetPayload<{ include: { category: true; brand: true } }>) {
   return {
@@ -79,10 +80,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const body = await request.json();
     const input = adminProductSchema.parse(body);
+    const [category, brand] = await Promise.all([
+      prisma.category.findFirst({ where: { id: input.categoryId, deletedAt: null }, select: { id: true } }),
+      prisma.brand.findFirst({ where: { id: input.brandId, deletedAt: null }, select: { id: true } }),
+    ]);
+
+    if (!category) {
+      throw new ValidationError('Категория не найдена');
+    }
+
+    if (!brand) {
+      throw new ValidationError('Бренд не найден');
+    }
+
     const product = await prisma.product.create({
       data: {
         name: input.name,
@@ -102,6 +116,16 @@ export async function POST(request: NextRequest) {
     });
 
     await invalidateProductCache(product.id);
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'product.create',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: {
+        name: product.name,
+        slug: product.slug,
+      },
+    });
 
     return NextResponse.json({ success: true, data: formatProduct(product) }, { status: 201 });
   } catch (error: unknown) {

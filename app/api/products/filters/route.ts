@@ -23,12 +23,13 @@ export async function GET(request: NextRequest) {
         const categoryIds = filters.categoryId
           ? await categoryRepository.findSelfAndDescendantIds(filters.categoryId)
           : undefined;
-        const [brands, priceRange] = await Promise.all([
+        const [brands, priceRange, specs] = await Promise.all([
           brandRepository.findByCategoryIds(categoryIds),
           productRepository.getPriceRange(categoryIds),
+          productRepository.getSpecFacets(categoryIds),
         ]);
 
-        return { brands, priceRange };
+        return { brands, priceRange, specs };
       },
       CACHE_TTL.productList
     );

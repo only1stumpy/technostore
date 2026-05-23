@@ -8,6 +8,14 @@ import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductFilters, type FilterState } from '@/components/product/ProductFilters';
 import type { CursorPaginatedResponse, ProductCard } from '@/types/api';
 
+function appendSpecFilters(params: URLSearchParams, specs: FilterState['specs']) {
+  for (const [key, values] of Object.entries(specs ?? {})) {
+    for (const value of values) {
+      params.append(`specs[${key}]`, value);
+    }
+  }
+}
+
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,6 +61,7 @@ function SearchContent() {
       if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
       if (filters.inStock) params.set('inStock', 'true');
+      appendSpecFilters(params, filters.specs);
       params.set('sortBy', filters.sortBy);
       params.set('sortOrder', filters.sortOrder);
       params.set('limit', '24');

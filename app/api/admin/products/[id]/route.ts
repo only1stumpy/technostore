@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
-import { NotFoundError, isAppError } from '@/lib/errors';
+import { NotFoundError, ValidationError, isAppError } from '@/lib/errors';
 import { adminProductSchema } from '@/lib/validation/admin';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 function formatProduct(product: Prisma.ProductGetPayload<{ include: { category: true; brand: true } }>) {
   return {
@@ -59,18 +60,31 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const { id } = await params;
     const body = await request.json();
     const input = adminProductSchema.parse(body);
     const existingProduct = await prisma.product.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, slug: true },
+      select: { id: true, name: true, slug: true },
     });
 
     if (!existingProduct) {
       throw new NotFoundError('Product not found');
+    }
+
+    const [category, brand] = await Promise.all([
+      prisma.category.findFirst({ where: { id: input.categoryId, deletedAt: null }, select: { id: true } }),
+      prisma.brand.findFirst({ where: { id: input.brandId, deletedAt: null }, select: { id: true } }),
+    ]);
+
+    if (!category) {
+      throw new ValidationError('Категория не найдена');
+    }
+
+    if (!brand) {
+      throw new ValidationError('Бренд не найден');
     }
 
     const product = await prisma.product.update({
@@ -93,6 +107,22 @@ export async function PATCH(
     });
 
     await invalidateProductCache(existingProduct.id, existingProduct.slug, product.slug);
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'product.update',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: {
+        from: {
+          name: existingProduct.name,
+          slug: existingProduct.slug,
+        },
+        to: {
+          name: product.name,
+          slug: product.slug,
+        },
+      },
+    });
 
     return NextResponse.json({ success: true, data: formatProduct(product) });
   } catch (error: unknown) {
@@ -123,12 +153,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const { id } = await params;
     const product = await prisma.product.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, slug: true },
+      select: { id: true, name: true, slug: true },
     });
 
     if (!product) {
@@ -140,6 +170,16 @@ export async function DELETE(
       data: { deletedAt: new Date() },
     });
     await invalidateProductCache(product.id, product.slug);
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'product.delete',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: {
+        name: product.name,
+        slug: product.slug,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

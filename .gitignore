@@ -48,3 +48,14 @@ next-env.d.ts
 .kangentic/
 .claude/settings.local.json
 kangentic.local.json
+
+.agents/
+.claude/
+docs/
+
+AGENTS.md
+CLAUDE.md
+kangentic.json
+prisma/migrations
+
+skills-lock.json

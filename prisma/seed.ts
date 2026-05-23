@@ -90,6 +90,24 @@ export async function seedDatabase() {
     },
   })
 
+  const reviewUsers = await Promise.all([
+    prisma.user.upsert({
+      where: { phone: '+37360000001' },
+      update: { name: 'Иван Петров', role: 'USER' },
+      create: { phone: '+37360000001', name: 'Иван Петров', role: 'USER' },
+    }),
+    prisma.user.upsert({
+      where: { phone: '+37360000002' },
+      update: { name: 'Анна Смирнова', role: 'USER' },
+      create: { phone: '+37360000002', name: 'Анна Смирнова', role: 'USER' },
+    }),
+    prisma.user.upsert({
+      where: { phone: '+37360000003' },
+      update: { name: 'Дмитрий Коваленко', role: 'USER' },
+      create: { phone: '+37360000003', name: 'Дмитрий Коваленко', role: 'USER' },
+    }),
+  ])
+
   const categoryBySlug = new Map<string, { id: string }>()
   for (const data of categoriesData) {
     const category = await prisma.category.upsert({
@@ -110,6 +128,7 @@ export async function seedDatabase() {
     brandBySlug.set(brand.slug, brand)
   }
 
+  const productBySlug = new Map<string, { id: string }>()
   for (const [name, slug, description, price, stock, categorySlug, brandSlug, specs] of productsData) {
     const category = categoryBySlug.get(categorySlug)
     const brand = brandBySlug.get(brandSlug)
@@ -118,7 +137,7 @@ export async function seedDatabase() {
       throw new Error(`Missing relation for product ${slug}`)
     }
 
-    await prisma.product.upsert({
+    const product = await prisma.product.upsert({
       where: { slug },
       update: {
         name,
@@ -147,9 +166,120 @@ export async function seedDatabase() {
         brandId: brand.id,
       },
     })
+    productBySlug.set(product.slug, product)
   }
 
-  console.log(`Seed completed: ${categoriesData.length} categories, ${brandsData.length} brands, ${productsData.length} products, admin ${adminUser.phone}`)
+  await prisma.promoCode.upsert({
+    where: { code: 'WELCOME10' },
+    update: {
+      type: 'PERCENT',
+      value: 10,
+      minOrderTotal: 1000,
+      usageLimit: 100,
+      isActive: true,
+    },
+    create: {
+      code: 'WELCOME10',
+      type: 'PERCENT',
+      value: 10,
+      minOrderTotal: 1000,
+      usageLimit: 100,
+    },
+  })
+
+  await prisma.promoCode.upsert({
+    where: { code: 'TECH500' },
+    update: {
+      type: 'FIXED',
+      value: 500,
+      minOrderTotal: 5000,
+      usageLimit: 50,
+      isActive: true,
+    },
+    create: {
+      code: 'TECH500',
+      type: 'FIXED',
+      value: 500,
+      minOrderTotal: 5000,
+      usageLimit: 50,
+    },
+  })
+
+  await prisma.promoCode.upsert({
+    where: { code: 'LAPTOP15' },
+    update: {
+      type: 'PERCENT',
+      value: 15,
+      minOrderTotal: 50000,
+      usageLimit: 25,
+      isActive: true,
+    },
+    create: {
+      code: 'LAPTOP15',
+      type: 'PERCENT',
+      value: 15,
+      minOrderTotal: 50000,
+      usageLimit: 25,
+    },
+  })
+
+  await prisma.promoCode.upsert({
+    where: { code: 'ACCESSORY200' },
+    update: {
+      type: 'FIXED',
+      value: 200,
+      minOrderTotal: 1500,
+      usageLimit: null,
+      isActive: true,
+    },
+    create: {
+      code: 'ACCESSORY200',
+      type: 'FIXED',
+      value: 200,
+      minOrderTotal: 1500,
+      usageLimit: null,
+    },
+  })
+
+  const reviewsData = [
+    ['macbook-air-m2', 0, 5, 'Очень легкий и тихий ноутбук. Для учебы, браузера и работы с документами хватает с большим запасом.'],
+    ['iphone-15', 1, 5, 'Камера и экран отличные, батареи спокойно хватает на день активного использования.'],
+    ['samsung-galaxy-s24', 2, 4, 'Компактный корпус и быстрый интерфейс. Хотелось бы зарядку в комплекте, но сам телефон понравился.'],
+    ['airpods-pro-2', 0, 5, 'Шумоподавление заметно лучше старых наушников, удобно использовать в дороге и офисе.'],
+    ['dell-ultrasharp-u2723qe', 1, 4, 'Хороший монитор для работы с текстом и цветом, USB-C хаб сильно упрощает подключение ноутбука.'],
+  ] as const
+
+  for (const [productSlug, userIndex, rating, text] of reviewsData) {
+    const product = productBySlug.get(productSlug)
+    const user = reviewUsers[userIndex]
+
+    if (!product || !user) {
+      throw new Error(`Missing review relation for product ${productSlug}`)
+    }
+
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: user.id,
+          productId: product.id,
+        },
+      },
+      update: {
+        rating,
+        text,
+        status: 'APPROVED',
+      },
+      create: {
+        userId: user.id,
+        productId: product.id,
+        rating,
+        text,
+        status: 'APPROVED',
+      },
+    })
+  }
+
+  console.log(`Seed completed: ${categoriesData.length} categories, ${brandsData.length} brands, ${productsData.length} products, 4 promo codes, ${reviewsData.length} reviews, admin ${adminUser.phone}`)
 }
 
 seedDatabase()

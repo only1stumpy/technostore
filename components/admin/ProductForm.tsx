@@ -15,6 +15,26 @@ interface ProductFormProps {
   brands: AdminBrand[];
 }
 
+type SpecRow = {
+  key: string;
+  value: string;
+};
+
+function formatInitialSpecValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+}
+
+function getInitialSpecRows(specs: Record<string, unknown> | null | undefined): SpecRow[] {
+  if (!specs) return [];
+
+  return Object.entries(specs).map(([key, value]) => ({
+    key,
+    value: formatInitialSpecValue(value),
+  }));
+}
+
 export function ProductForm({ product, categories, brands }: ProductFormProps) {
   const router = useRouter();
   const [name, setName] = useState(product?.name ?? '');
@@ -26,27 +46,58 @@ export function ProductForm({ product, categories, brands }: ProductFormProps) {
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? categories[0]?.id ?? '');
   const [brandId, setBrandId] = useState(product?.brandId ?? brands[0]?.id ?? '');
   const [images, setImages] = useState(product?.images.join('\n') ?? '');
-  const [specs, setSpecs] = useState(product?.specs ? JSON.stringify(product.specs, null, 2) : '');
+  const [specRows, setSpecRows] = useState<SpecRow[]>(getInitialSpecRows(product?.specs));
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const title = useMemo(() => product ? 'Редактировать товар' : 'Добавить товар', [product]);
   const hasRequiredOptions = categories.length > 0 && brands.length > 0;
 
+  function updateSpecRow(index: number, field: keyof SpecRow, value: string) {
+    setSpecRows((currentRows) => currentRows.map((row, rowIndex) => rowIndex === index ? { ...row, [field]: value } : row));
+  }
+
+  function removeSpecRow(index: number) {
+    setSpecRows((currentRows) => currentRows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  function buildSpecs(): Record<string, string> | null {
+    const result: Record<string, string> = {};
+    const seenKeys = new Set<string>();
+
+    for (const row of specRows) {
+      const key = row.key.trim();
+      const value = row.value.trim();
+
+      if (!key && !value) continue;
+
+      if (!key) {
+        throw new Error('Укажите название характеристики');
+      }
+
+      if (seenKeys.has(key.toLocaleLowerCase('ru'))) {
+        throw new Error('Названия характеристик не должны повторяться');
+      }
+
+      seenKeys.add(key.toLocaleLowerCase('ru'));
+      result[key] = value;
+    }
+
+    return Object.keys(result).length > 0 ? result : null;
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    let parsedSpecs: Record<string, unknown> | null = null;
-    if (specs.trim()) {
-      try {
-        parsedSpecs = JSON.parse(specs);
-      } catch {
-        setError('Проверьте JSON характеристик');
-        setIsSubmitting(false);
-        return;
-      }
+    let parsedSpecs: Record<string, string> | null = null;
+    try {
+      parsedSpecs = buildSpecs();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Проверьте характеристики');
+      setIsSubmitting(false);
+      return;
     }
 
     try {
@@ -123,10 +174,22 @@ export function ProductForm({ product, categories, brands }: ProductFormProps) {
             Изображения, по одному URL на строку
             <textarea className="mt-2 min-h-28 w-full rounded-lg border border-input bg-background px-4 py-3" value={images} onChange={(event) => setImages(event.target.value)} />
           </label>
-          <label className="block text-sm font-medium text-foreground">
-            Характеристики JSON
-            <textarea className="mt-2 min-h-36 w-full rounded-lg border border-input bg-background px-4 py-3 font-mono text-sm" value={specs} onChange={(event) => setSpecs(event.target.value)} />
-          </label>
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Характеристики</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Добавьте параметры товара в формате название — значение.</p>
+            </div>
+            <div className="space-y-3">
+              {specRows.map((row, index) => (
+                <div key={index} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                  <Input aria-label="Название характеристики" placeholder="ОЗУ" value={row.key} onChange={(event) => updateSpecRow(index, 'key', event.target.value)} />
+                  <Input aria-label="Значение характеристики" placeholder="16 ГБ" value={row.value} onChange={(event) => updateSpecRow(index, 'value', event.target.value)} />
+                  <Button type="button" variant="secondary" onClick={() => removeSpecRow(index)}>Удалить</Button>
+                </div>
+              ))}
+            </div>
+            <Button type="button" variant="secondary" onClick={() => setSpecRows((currentRows) => [...currentRows, { key: '', value: '' }])}>Добавить характеристику</Button>
+          </div>
           <div className="flex gap-3">
             <Button type="submit" isLoading={isSubmitting} disabled={!hasRequiredOptions}>Сохранить</Button>
             <Button type="button" variant="secondary" onClick={() => router.push('/admin/products')}>Отмена</Button>

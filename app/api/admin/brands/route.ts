@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
 import { isAppError } from '@/lib/errors';
 import { adminBrandSchema } from '@/lib/validation/admin';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 function formatBrand(brand: Prisma.BrandGetPayload<{ include: { _count: { select: { products: true } } } }>) {
   return {
@@ -54,7 +55,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const body = await request.json();
     const input = adminBrandSchema.parse(body);
@@ -76,6 +77,16 @@ export async function POST(request: NextRequest) {
     });
 
     await invalidateBrandCache();
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'brand.create',
+      entityType: 'brand',
+      entityId: brand.id,
+      metadata: {
+        name: brand.name,
+        slug: brand.slug,
+      },
+    });
 
     return NextResponse.json({ success: true, data: formatBrand(brand) }, { status: 201 });
   } catch (error: unknown) {

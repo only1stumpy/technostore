@@ -10,6 +10,38 @@ import { Spinner } from '@/components/ui/Spinner';
 import { ProductFiltersSchema } from '@/lib/validation/catalog';
 import type { CategoryTree, ProductCard } from '@/types/api';
 
+function parseSpecFilters(searchParams: URLSearchParams) {
+  const specs: Record<string, string[]> = {};
+
+  for (const [param, value] of searchParams.entries()) {
+    const match = param.match(/^specs\[(.+)]$/);
+    const trimmedValue = value.trim();
+
+    if (!match || !trimmedValue) continue;
+
+    const key = match[1].trim();
+    if (!key) continue;
+
+    specs[key] = [...(specs[key] ?? []), trimmedValue];
+  }
+
+  return Object.keys(specs).length > 0 ? specs : undefined;
+}
+
+function appendSpecFilters(params: URLSearchParams, specs: FilterState['specs']) {
+  for (const key of Array.from(params.keys())) {
+    if (key.startsWith('specs[')) {
+      params.delete(key);
+    }
+  }
+
+  for (const [key, values] of Object.entries(specs ?? {})) {
+    for (const value of values) {
+      params.append(`specs[${key}]`, value);
+    }
+  }
+}
+
 function findCategoryBySlug(categories: CategoryTree[], slug: string): CategoryTree | null {
   for (const category of categories) {
     if (category.slug === slug) {
@@ -73,6 +105,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
     const categoryId = category.id;
     const parsedFilters = ProductFiltersSchema.safeParse({
       ...Object.fromEntries(searchParams.entries()),
+      specs: parseSpecFilters(searchParams),
       categoryId,
     });
 
@@ -95,6 +128,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
       if (parsedData.maxPrice !== undefined) params.set('maxPrice', String(parsedData.maxPrice));
       if (parsedData.inStock !== undefined) params.set('inStock', String(parsedData.inStock));
       if (parsedData.search) params.set('search', parsedData.search);
+      appendSpecFilters(params, parsedData.specs);
 
       const response = await fetch(`/api/products?${params}`);
       if (!response.ok) {
@@ -141,6 +175,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
         params.delete(key);
       }
     });
+    appendSpecFilters(params, newFilters.specs);
 
     router.replace(params.toString() ? `${pathname}?${params}` : pathname);
   };
@@ -161,6 +196,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
       if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
       if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
       if (filters.inStock !== undefined) params.set('inStock', String(filters.inStock));
+      appendSpecFilters(params, filters.specs);
 
       const response = await fetch(`/api/products?${params}`);
       const data = await response.json();

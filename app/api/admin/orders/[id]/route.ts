@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { NotFoundError, ValidationError, isAppError } from '@/lib/errors';
 import { ORDER_STATUS } from '@/lib/constants';
 import { adminOrderStatusSchema } from '@/lib/validation/admin';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
 
@@ -21,6 +22,7 @@ const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 function formatOrder(order: Prisma.OrderGetPayload<{
   include: {
     user: { select: { id: true; name: true; phone: true } };
+    promoCode: true;
     items: { include: { product: { select: { id: true; name: true; images: true } } } };
   };
 }>) {
@@ -36,7 +38,10 @@ function formatOrder(order: Prisma.OrderGetPayload<{
   return {
     id: order.id,
     status: order.status,
+    subtotal: Number(order.subtotal),
+    discountAmount: Number(order.discountAmount),
     total: Number(order.total),
+    promoCode: order.promoCode?.code ?? null,
     recipientName: order.recipientName,
     address: order.address,
     phone: order.phone,
@@ -71,6 +76,7 @@ export async function GET(
             phone: true,
           },
         },
+        promoCode: true,
         items: {
           include: {
             product: {
@@ -105,7 +111,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const { id } = await params;
     const body = await request.json();
@@ -145,6 +151,7 @@ export async function PATCH(
             phone: true,
           },
         },
+        promoCode: true,
         items: {
           include: {
             product: {
@@ -162,6 +169,17 @@ export async function PATCH(
     if (!order) {
       throw new NotFoundError('Order not found');
     }
+
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'order.status.update',
+      entityType: 'order',
+      entityId: id,
+      metadata: {
+        from: currentOrder.status,
+        to: input.status,
+      },
+    });
 
     return NextResponse.json({ success: true, data: formatOrder(order) });
   } catch (error: unknown) {

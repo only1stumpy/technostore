@@ -3,17 +3,40 @@ interface ProductSpecsProps {
 }
 
 const specLabels: Record<string, string> = {
+  battery: 'Емкость батареи',
+  bluetooth: 'Bluetooth',
+  color: 'Цвет',
+  display: 'Экран',
   features: 'Особенности',
+  memory: 'Память',
+  processor: 'Процессор',
+  ram: 'ОЗУ',
+  refreshRate: 'Частота обновления',
+  screenSize: 'Диагональ',
+  storage: 'Накопитель',
+  weight: 'Вес',
 };
+
+function getSpecLabel(key: string): string {
+  return specLabels[key] || key;
+}
+
+function isEmptySpecValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') return value.trim().length === 0;
+  if (Array.isArray(value)) return value.every(isEmptySpecValue);
+  return false;
+}
 
 function formatSpecValue(value: unknown): string {
   if (Array.isArray(value)) {
-    return value.map(formatSpecValue).join(', ');
+    return value.filter((item) => !isEmptySpecValue(item)).map(formatSpecValue).join(', ');
   }
 
   if (typeof value === 'object' && value !== null) {
     return Object.entries(value)
-      .map(([key, nestedValue]) => `${specLabels[key] || key}: ${formatSpecValue(nestedValue)}`)
+      .filter(([, nestedValue]) => !isEmptySpecValue(nestedValue))
+      .map(([key, nestedValue]) => `${getSpecLabel(key)}: ${formatSpecValue(nestedValue)}`)
       .join(', ');
   }
 
@@ -21,30 +44,32 @@ function formatSpecValue(value: unknown): string {
 }
 
 export function ProductSpecs({ specs }: ProductSpecsProps) {
-  if (!specs || Object.keys(specs).length === 0) {
+  const entries = Object.entries(specs ?? {}).filter(([, value]) => !isEmptySpecValue(value));
+
+  if (entries.length === 0) {
     return (
-      <div className="text-[#666666] text-center py-8">
+      <div className="py-8 text-center text-muted-foreground">
         Характеристики не указаны
       </div>
     );
   }
 
   return (
-    <section className="border-2 border-[#e5e5e5]">
-      <div className="bg-[#f5f5f5] px-6 py-4 border-b-2 border-[#e5e5e5]">
-        <h3 className="text-lg font-bold text-[#1a1a1a] uppercase tracking-tight">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="border-b border-border bg-muted/40 px-6 py-4">
+        <h3 className="text-lg font-bold uppercase tracking-tight text-foreground">
           Характеристики
         </h3>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
-          <tbody className="divide-y divide-[#e5e5e5]">
-            {Object.entries(specs).map(([key, value]) => (
-              <tr key={key} className="hover:bg-[#f5f5f5] transition-colors">
-                <th scope="row" className="w-1/3 min-w-40 px-6 py-4 text-left text-sm font-medium text-[#666666]">
-                  {specLabels[key] || key}
+          <tbody className="divide-y divide-border">
+            {entries.map(([key, value]) => (
+              <tr key={key} className="transition-colors hover:bg-muted/40">
+                <th scope="row" className="w-1/3 min-w-40 px-6 py-4 text-left text-sm font-medium text-muted-foreground">
+                  {getSpecLabel(key)}
                 </th>
-                <td className="px-6 py-4 text-sm text-[#1a1a1a]">{formatSpecValue(value)}</td>
+                <td className="px-6 py-4 text-sm font-medium text-foreground">{formatSpecValue(value)}</td>
               </tr>
             ))}
           </tbody>

@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/layout/Container';
+import { FavoriteButton } from '@/components/product/FavoriteButton';
 import { ProductGallery } from '@/components/product/ProductGallery';
+import { ProductReviews } from '@/components/product/ProductReviews';
 import { ProductSpecs } from '@/components/product/ProductSpecs';
+import { RatingSummary } from '@/components/product/RatingSummary';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useCartStore } from '@/store/cartStore';
@@ -97,6 +100,23 @@ export function ProductPageClient({ id }: { id: string }) {
     return null;
   }
 
+  const favoriteProduct = {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    price: product.price,
+    imageUrl: product.images[0] ?? null,
+    stock: product.stock,
+    ratingAverage: product.ratingAverage,
+    reviewsCount: product.reviewsCount,
+    brand: product.brand,
+    category: {
+      id: product.category.id,
+      name: product.category.name,
+      slug: product.category.slug,
+    },
+  };
+
   return (
     <Container className="py-8">
       <div className="space-y-8">
@@ -109,9 +129,12 @@ export function ProductPageClient({ id }: { id: string }) {
             <h1 className="text-4xl font-bold text-[#1a1a1a] uppercase tracking-tight">
               {product.name}
             </h1>
-            <p className="text-3xl font-bold text-[#ff0000]">
-              {formatPrice(product.price)}
-            </p>
+            <div className="space-y-2">
+              <p className="text-3xl font-bold text-[#ff0000]">
+                {formatPrice(product.price)}
+              </p>
+              <RatingSummary ratingAverage={product.ratingAverage} reviewsCount={product.reviewsCount} size="md" />
+            </div>
 
             {product.description && (
               <div className="text-[#1a1a1a]">
@@ -120,7 +143,7 @@ export function ProductPageClient({ id }: { id: string }) {
               </div>
             )}
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               {product.stock > 0 ? (
                 <span className="text-[#10b981] font-medium">В наличии ({product.stock})</span>
               ) : (
@@ -134,6 +157,7 @@ export function ProductPageClient({ id }: { id: string }) {
               >
                 Добавить в корзину
               </Button>
+              <FavoriteButton product={favoriteProduct} className="h-11 w-11" />
             </div>
 
             {cartMessage && (
@@ -145,6 +169,7 @@ export function ProductPageClient({ id }: { id: string }) {
         </div>
 
         {product.specs && <ProductSpecs specs={product.specs} />}
+        <ProductReviews productId={product.id} ratingAverage={product.ratingAverage} reviewsCount={product.reviewsCount} />
       </div>
     </Container>
   );

@@ -12,6 +12,7 @@ export const ProductFiltersSchema = z.object({
   maxPrice: z.coerce.number().nonnegative().optional(),
   inStock: z.coerce.boolean().optional(),
   search: z.string().min(1).max(100).optional(),
+  specs: z.record(z.string(), z.array(z.string())).optional(),
 
   // Sorting
   sortBy: z.enum(['price', 'createdAt', 'name', 'popular']).default('createdAt'),

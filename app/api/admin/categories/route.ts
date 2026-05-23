@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
 import { isAppError } from '@/lib/errors';
 import { adminCategorySchema } from '@/lib/validation/admin';
+import { logAdminAction } from '@/lib/admin-action-log';
 
 function formatCategory(category: Prisma.CategoryGetPayload<{ include: { _count: { select: { products: true } } } }>) {
   return {
@@ -54,7 +55,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     const body = await request.json();
     const input = adminCategorySchema.parse(body);
@@ -76,6 +77,17 @@ export async function POST(request: NextRequest) {
     });
 
     await invalidateCategoryCache();
+    await logAdminAction({
+      adminId: admin.userId,
+      action: 'category.create',
+      entityType: 'category',
+      entityId: category.id,
+      metadata: {
+        name: category.name,
+        slug: category.slug,
+        parentId: category.parentId,
+      },
+    });
 
     return NextResponse.json({ success: true, data: formatCategory(category) }, { status: 201 });
   } catch (error: unknown) {
