@@ -27,6 +27,62 @@ const brandsData = [
   { name: 'Spire', slug: 'spire', logo: '/logos/spire.png' },
 ]
 
+const productImagesBySlug: Record<string, string[]> = {
+  'macbook-air-m2': [
+    'https://upload.wikimedia.org/wikipedia/commons/9/9f/M2_Macbook_Air_Starlight_model.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/2/25/M2_Macbook_Air_Midnight_model_-_1.jpg',
+  ],
+  'macbook-pro-14-m3': [
+    'https://upload.wikimedia.org/wikipedia/commons/4/40/Apple_MacBook_Pro_%28M3%29.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/a/a6/M3_Macbook_Pro_14_inch_Space_Grey_model.jpg',
+  ],
+  'lenovo-ideapad-slim-5': [
+    'https://upload.wikimedia.org/wikipedia/commons/7/71/Lenovo_laptop_2025.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/c/c0/Internal_structure_of_Lenovo_laptop.jpg',
+  ],
+  'hp-pavilion-15': [
+    'https://upload.wikimedia.org/wikipedia/commons/3/34/HP_Pavilion_15_cs3095nr.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/e/e3/HP_Pavilion_15-n265ss_001.jpg',
+  ],
+  'asus-zenbook-14-oled': [
+    'https://upload.wikimedia.org/wikipedia/commons/e/e3/Asus_Eeebook_X205TA_running_Gnome_Shell_3.24.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/4/44/Asus_ROG_Laptop_Keyboard.jpg',
+  ],
+  'dell-xps-13': [
+    'https://upload.wikimedia.org/wikipedia/commons/8/8f/Dell_XPS_13_%282018%29.png',
+    'https://upload.wikimedia.org/wikipedia/commons/4/45/Apple_MacBook_Pro_16%22_M2_Max_with_Headset_and_Mouse.jpg',
+  ],
+  'iphone-15': [
+    'https://upload.wikimedia.org/wikipedia/commons/f/f9/Back_of_iPhone_15.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/1/19/Apple_iPhone_15_Pro.jpg',
+  ],
+  'iphone-15-pro': [
+    'https://upload.wikimedia.org/wikipedia/commons/1/19/Apple_iPhone_15_Pro.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/6/67/IPhone_Pro_%28Max%29.jpg',
+  ],
+}
+
+const categoryImagesBySlug: Record<string, string[]> = {
+  laptops: productImagesBySlug['macbook-air-m2'],
+  smartphones: productImagesBySlug['iphone-15'],
+  tablets: [
+    'https://upload.wikimedia.org/wikipedia/commons/d/d7/IPad_Pro_2020_%2811-inch%29.png',
+    'https://upload.wikimedia.org/wikipedia/commons/4/4e/IPad_Air_4.png',
+  ],
+  accessories: [
+    'https://upload.wikimedia.org/wikipedia/commons/0/0e/Apple_Watch_Series_4.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/9/9f/AirPods_Pro.jpg',
+  ],
+  monitors: [
+    'https://upload.wikimedia.org/wikipedia/commons/9/91/Dell_monitor.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/3/35/Computer_monitor.jpg',
+  ],
+  components: [
+    'https://upload.wikimedia.org/wikipedia/commons/1/1b/Computer_fan.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/4/47/Thermal_paste.jpg',
+  ],
+}
+
 const productsData = [
   ['MacBook Air M2', 'macbook-air-m2', 'Тонкий ноутбук Apple на чипе M2 для работы, учебы и путешествий.', 119999, 12, 'laptops', 'apple', ['13.6″ Liquid Retina', 'Apple M2', '8 ГБ RAM', '256 ГБ SSD']],
   ['MacBook Pro 14 M3', 'macbook-pro-14-m3', 'Профессиональный ноутбук Apple с ярким экраном и высокой автономностью.', 229999, 8, 'laptops', 'apple', ['14.2″ Liquid Retina XDR', 'Apple M3', '16 ГБ RAM', '512 ГБ SSD']],
@@ -144,7 +200,7 @@ export async function seedDatabase() {
         description,
         price,
         stock,
-        images: [`/products/${slug}-1.jpg`, `/products/${slug}-2.jpg`],
+        images: productImagesBySlug[slug] ?? categoryImagesBySlug[categorySlug],
         specs: {
           features: specs,
         },
@@ -158,7 +214,7 @@ export async function seedDatabase() {
         description,
         price,
         stock,
-        images: [`/products/${slug}-1.jpg`, `/products/${slug}-2.jpg`],
+        images: productImagesBySlug[slug] ?? categoryImagesBySlug[categorySlug],
         specs: {
           features: specs,
         },

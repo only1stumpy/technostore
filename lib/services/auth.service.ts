@@ -46,7 +46,7 @@ export class AuthService implements IAuthService {
     const codeHash = createHash('sha256').update(code).digest('hex');
     await this.redisClient.set(`sms:${normalizedPhone}`, codeHash, { ex: SMS_CODE_TTL });
 
-    return process.env.SMS_PROVIDER === 'mock' ? { code } : {};
+    return (process.env.SMS_PROVIDER || 'mock') === 'mock' ? { code } : {};
   }
 
   async verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{
