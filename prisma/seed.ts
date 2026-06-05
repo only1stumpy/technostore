@@ -2,16 +2,12 @@ import 'dotenv/config'
 import { prisma } from '../lib/prisma'
 
 const categoriesData = [
-  { name: 'Блоки питания', slug: 'bloki-pitaniya' },
-  { name: 'Видеокарты', slug: 'videokarty' },
-  { name: 'Жесткие диски (HDD-накопители)', slug: 'zhestkie-diski-hdd-nakopiteli' },
-  { name: 'Корпуса', slug: 'korpusa' },
-  { name: 'Материнские платы', slug: 'materinskie-platy' },
-  { name: 'Накопитель (ssd)', slug: 'nakopitel-ssd' },
-  { name: 'Оперативная память', slug: 'operativnaya-pamyat' },
-  { name: 'Процессоры', slug: 'processory' },
-  { name: 'Системы охлаждения', slug: 'sistemy-ohlazhdeniya' },
-  { name: 'Термопасты', slug: 'termopasty' },
+  { name: 'Ноутбуки', slug: 'laptops' },
+  { name: 'Смартфоны', slug: 'smartphones' },
+  { name: 'Планшеты', slug: 'tablets' },
+  { name: 'Аксессуары', slug: 'accessories' },
+  { name: 'Мониторы', slug: 'monitors' },
+  { name: 'Комплектующие', slug: 'components' },
 ]
 
 const brandsData = [
