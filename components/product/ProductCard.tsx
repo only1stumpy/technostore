@@ -16,7 +16,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const imageUrl = product.imageUrl?.replace(/^\//, '').startsWith('products/') ? null : product.imageUrl;
 
   return (
-    <div className="group relative bg-white border border-gray-200 hover:border-red-600 transition-colors">
+    <div className="group relative bg-white border border-gray-200 hover:border-red-600 transition-colors flex flex-col h-full">
       <div className="absolute right-3 top-3 z-10 flex gap-2">
         <CompareButton product={product} />
         <FavoriteButton product={product} />
@@ -24,7 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <Link
         href={`/product/${product.id}`}
-        className="block"
+        className="flex flex-col flex-1"
         aria-label={`${product.name}, бренд ${product.brand.name}`}
       >
         <div className="aspect-square relative bg-gray-50 overflow-hidden">
@@ -48,28 +48,32 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        <div className="p-4 space-y-2">
+        <div className="p-4 flex flex-col flex-1">
           <div className="text-sm text-gray-500">{product.brand.name}</div>
-          <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors">
+          <h3 className="mt-2 font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors">
             {product.name}
           </h3>
 
-          <RatingSummary ratingAverage={product.ratingAverage} reviewsCount={product.reviewsCount} />
-
-          <div className="flex items-baseline justify-between pt-2">
-            <div className="text-2xl font-bold text-gray-900">
-              {formatPrice(product.price)}
-            </div>
-            {lowStock && (
-              <div className="text-xs text-red-600 font-medium">
-                Осталось {product.stock} шт.
-              </div>
-            )}
+          <div className="mt-2">
+            <RatingSummary ratingAverage={product.ratingAverage} reviewsCount={product.reviewsCount} />
           </div>
 
-          {inStock && (
-            <div className="text-sm text-green-600 font-medium">В наличии</div>
-          )}
+          <div className="mt-auto pt-4 space-y-2">
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl font-bold text-gray-900">
+                {formatPrice(product.price)}
+              </div>
+              {lowStock && (
+                <div className="text-xs text-red-600 font-medium">
+                  Осталось {product.stock} шт.
+                </div>
+              )}
+            </div>
+
+            {inStock && (
+              <div className="text-sm text-green-600 font-medium">В наличии</div>
+            )}
+          </div>
         </div>
       </Link>
     </div>
