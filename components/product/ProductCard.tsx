@@ -27,13 +27,13 @@ export function ProductCard({ product }: ProductCardProps) {
         className="flex flex-col flex-1"
         aria-label={`${product.name}, бренд ${product.brand.name}`}
       >
-        <div className="aspect-square relative bg-gray-50 overflow-hidden">
+        <div className="relative h-64 shrink-0 overflow-hidden bg-gray-50">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={product.name}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             />
           ) : (
