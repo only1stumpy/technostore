@@ -16,8 +16,9 @@ export function validateOrigin(request: NextRequest): void {
   }
 
   const requestOrigin = origin || (referer ? new URL(referer).origin : null);
+  const allowedOrigins = new Set([...ALLOWED_ORIGINS, request.nextUrl.origin]);
 
-  if (!requestOrigin || !ALLOWED_ORIGINS.includes(requestOrigin)) {
+  if (!requestOrigin || !allowedOrigins.has(requestOrigin)) {
     throw new ForbiddenError('Invalid request origin');
   }
 }
