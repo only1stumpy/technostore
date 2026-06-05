@@ -1,128 +1,63 @@
 import 'dotenv/config'
 import { prisma } from '../lib/prisma'
 
+// КАТЕГОРИИ
+// Формат: { name: 'Название категории', slug: 'url-slug' }
+// Пример: { name: 'Ноутбуки', slug: 'laptops' }
 const categoriesData = [
-  { name: 'Ноутбуки', slug: 'laptops' },
   { name: 'Смартфоны', slug: 'smartphones' },
-  { name: 'Планшеты', slug: 'tablets' },
-  { name: 'Аксессуары', slug: 'accessories' },
-  { name: 'Мониторы', slug: 'monitors' },
-  { name: 'Комплектующие', slug: 'components' },
 ]
 
+// БРЕНДЫ
+// Формат: { name: 'Название', slug: 'url-slug', logo: 'URL или путь' }
+// logo — можно использовать любую ссылку (https://... или /logos/...)
+// Пример: { name: 'Apple', slug: 'apple', logo: 'https://logo.clearbit.com/apple.com' }
 const brandsData = [
-  { name: 'Apple', slug: 'apple', logo: '/logos/apple.png' },
-  { name: 'Samsung', slug: 'samsung', logo: '/logos/samsung.png' },
-  { name: 'Lenovo', slug: 'lenovo', logo: '/logos/lenovo.png' },
-  { name: 'HP', slug: 'hp', logo: '/logos/hp.png' },
-  { name: 'Xiaomi', slug: 'xiaomi', logo: '/logos/xiaomi.png' },
-  { name: 'ASUS', slug: 'asus', logo: '/logos/asus.png' },
-  { name: 'Dell', slug: 'dell', logo: '/logos/dell.png' },
-  { name: 'BlackView', slug: 'blackview', logo: '/logos/blackview.png' },
-  { name: 'PocketBook', slug: 'pocketbook', logo: '/logos/pocketbook.png' },
-  { name: 'Gembird', slug: 'gembird', logo: '/logos/gembird.png' },
-  { name: 'Xilence', slug: 'xilence', logo: '/logos/xilence.png' },
-  { name: 'be quiet!', slug: 'be-quiet', logo: '/logos/be-quiet.png' },
-  { name: 'Arctic', slug: 'arctic', logo: '/logos/arctic.png' },
-  { name: 'Spire', slug: 'spire', logo: '/logos/spire.png' },
+  { name: 'Apple', slug: 'apple', logo: 'https://logo.clearbit.com/apple.com' },
 ]
 
+// ИЗОБРАЖЕНИЯ ТОВАРОВ (опционально)
+// Ключ — slug товара, значение — массив любых URL изображений
+// Если не указано, используются изображения из categoryImagesBySlug
+// Пример:
+// 'iphone-15': [
+//   'https://example.com/iphone-1.jpg',
+//   'https://example.com/iphone-2.jpg',
+// ],
 const productImagesBySlug: Record<string, string[]> = {
-  'macbook-air-m2': [
-    'https://e.cdnmoldcell.md/products/6012652/Laptop-Apple-Macbook-Air-2022-M2-Space-Grey-1-1.jpg',
-  ],
-  'macbook-pro-14-m3': [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROjJH4LtiRHP4bhWxyyn26Sw7qCWjWAcpWPA&s',
-  ],
-  'lenovo-ideapad-slim-5': [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQnSMlYOP35FVTWVoFpDcxK42nrJtRXbI6wxA&s',
-  ],
-  'hp-pavilion-15': [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTW1XyMSZZuzMeL4Tv4SfecetstxFMqxi3bA&s',
-  ],
-  'asus-zenbook-14-oled': [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3cIUwe3WmKfbjAx-5FPqkNwLFdbAAWu0_-w&s',
-  ],
-  'dell-xps-13': [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRs5za5r3r9qsf589tbdTys7GxdWN3EYIguNg&s',
-  ],
-  'iphone-15': [
-    'https://upload.wikimedia.org/wikipedia/commons/f/f9/Back_of_iPhone_15.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/1/19/Apple_iPhone_15_Pro.jpg',
-  ],
-  'iphone-15-pro': [
-    'https://upload.wikimedia.org/wikipedia/commons/1/19/Apple_iPhone_15_Pro.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/6/67/IPhone_Pro_%28Max%29.jpg',
-  ],
+ 'iphone-15': [
+   'https://example.com/iphone-1.jpg',
+   'https://example.com/iphone-2.jpg',
+ ],
 }
 
+// ИЗОБРАЖЕНИЯ КАТЕГОРИЙ (fallback для товаров без своих изображений)
+// Ключ — slug категории, значение — массив URL
+// Пример:
+// smartphones: ['https://example.com/category-phone.jpg'],
 const categoryImagesBySlug: Record<string, string[]> = {
-  laptops: productImagesBySlug['macbook-air-m2'],
-  smartphones: productImagesBySlug['iphone-15'],
-  tablets: [
-    'https://upload.wikimedia.org/wikipedia/commons/d/d7/IPad_Pro_2020_%2811-inch%29.png',
-    'https://upload.wikimedia.org/wikipedia/commons/4/4e/IPad_Air_4.png',
-  ],
-  accessories: [
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Apple_iPhone_15_Pro.jpg/250px-Apple_iPhone_15_Pro.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/M2_Macbook_Air_Starlight_model.jpg/250px-M2_Macbook_Air_Starlight_model.jpg',
-  ],
-  monitors: [
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Dell_XPS_13_%282018%29.png/250px-Dell_XPS_13_%282018%29.png',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/HP_Pavilion_15_cs3095nr.jpg/250px-HP_Pavilion_15_cs3095nr.jpg',
-  ],
-  components: [
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/M2_Macbook_Air_Starlight_model.jpg/250px-M2_Macbook_Air_Starlight_model.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Apple_iPhone_15_Pro.jpg/250px-Apple_iPhone_15_Pro.jpg',
-  ],
+  smartphones: ['https://example.com/category-phone.jpg'],
 }
 
+// ТОВАРЫ
+// Формат массива (порядок важен!):
+// [название, slug, описание, цена, остаток, categorySlug, brandSlug, {характеристики}]
+//
+// Характеристики — объект в формате ключ: значение для работы фильтров
+// Пример:
+// ['iPhone 15', 'iphone-15', 'Флагманский смартфон Apple', 8200, 50, 'smartphones', 'apple', {
+//   'Экран': '6.1″ Super Retina XDR',
+//   'Процессор': 'A16 Bionic',
+//   'Память': '128 ГБ',
+//   'Камера': '48 МП',
+// }],
 const productsData = [
-  ['MacBook Air M2', 'macbook-air-m2', 'Тонкий ноутбук Apple на чипе M2 для работы, учебы и путешествий.', 9900, 12, 'laptops', 'apple', ['13.6″ Liquid Retina', 'Apple M2', '8 ГБ RAM', '256 ГБ SSD']],
-  ['MacBook Pro 14 M3', 'macbook-pro-14-m3', 'Профессиональный ноутбук Apple с ярким экраном и высокой автономностью.', 9800, 8, 'laptops', 'apple', ['14.2″ Liquid Retina XDR', 'Apple M3', '16 ГБ RAM', '512 ГБ SSD']],
-  ['Lenovo IdeaPad Slim 5', 'lenovo-ideapad-slim-5', 'Универсальный ноутбук для офиса, учебы и повседневных задач.', 7600, 20, 'laptops', 'lenovo', ['16″ IPS', 'AMD Ryzen 5', '16 ГБ RAM', '512 ГБ SSD']],
-  ['HP Pavilion 15', 'hp-pavilion-15', 'Производительный ноутбук HP с полноразмерной клавиатурой.', 6900, 15, 'laptops', 'hp', ['15.6″ IPS', 'Intel Core i5', '16 ГБ RAM', '512 ГБ SSD']],
-  ['ASUS Zenbook 14 OLED', 'asus-zenbook-14-oled', 'Компактный ноутбук с OLED-экраном и металлическим корпусом.', 8700, 9, 'laptops', 'asus', ['14″ OLED', 'Intel Core Ultra 5', '16 ГБ RAM', '1 ТБ SSD']],
-  ['Dell XPS 13', 'dell-xps-13', 'Премиальный ультрабук Dell с тонкими рамками.', 9400, 7, 'laptops', 'dell', ['13.4″ FHD+', 'Intel Core i7', '16 ГБ RAM', '512 ГБ SSD']],
-  ['iPhone 15', 'iphone-15', 'Смартфон Apple с Dynamic Island, USB-C и отличной камерой.', 8200, 24, 'smartphones', 'apple', ['6.1″ Super Retina XDR', 'A16 Bionic', '128 ГБ', '48 МП']],
-  ['iPhone 15 Pro', 'iphone-15-pro', 'Флагманский iPhone с титановым корпусом и чипом A17 Pro.', 9900, 13, 'smartphones', 'apple', ['6.1″ Super Retina XDR', 'A17 Pro', '256 ГБ', 'Pro camera system']],
-  ['Samsung Galaxy S24', 'samsung-galaxy-s24', 'Компактный флагман Samsung с ярким AMOLED-экраном.', 7800, 18, 'smartphones', 'samsung', ['6.2″ Dynamic AMOLED', 'Exynos 2400', '8 ГБ RAM', '256 ГБ']],
-  ['Samsung Galaxy A55', 'samsung-galaxy-a55', 'Сбалансированный смартфон Samsung с влагозащитой.', 4200, 35, 'smartphones', 'samsung', ['6.6″ Super AMOLED', 'Exynos 1480', '8 ГБ RAM', '128 ГБ']],
-  ['Xiaomi Redmi Note 13 Pro', 'xiaomi-redmi-note-13-pro', 'Смартфон Xiaomi с быстрой зарядкой и камерой высокого разрешения.', 3600, 42, 'smartphones', 'xiaomi', ['6.67″ AMOLED', 'Snapdragon 7s Gen 2', '8 ГБ RAM', '200 МП']],
-  ['Xiaomi 14', 'xiaomi-14', 'Компактный флагман Xiaomi с камерой Leica.', 7300, 16, 'smartphones', 'xiaomi', ['6.36″ AMOLED', 'Snapdragon 8 Gen 3', '12 ГБ RAM', '512 ГБ']],
-  ['iPad Air 11 M2', 'ipad-air-11-m2', 'Легкий планшет Apple для учебы, творчества и развлечений.', 6200, 14, 'tablets', 'apple', ['11″ Liquid Retina', 'Apple M2', '128 ГБ', 'Wi‑Fi']],
-  ['iPad Pro 13 M4', 'ipad-pro-13-m4', 'Тонкий профессиональный планшет Apple с OLED-дисплеем.', 9900, 6, 'tablets', 'apple', ['13″ Ultra Retina XDR', 'Apple M4', '256 ГБ', 'Wi‑Fi']],
-  ['Samsung Galaxy Tab S9', 'samsung-galaxy-tab-s9', 'Android-планшет Samsung с AMOLED-экраном и стилусом.', 7200, 11, 'tablets', 'samsung', ['11″ Dynamic AMOLED', 'Snapdragon 8 Gen 2', '8 ГБ RAM', 'S Pen']],
-  ['Lenovo Tab P12', 'lenovo-tab-p12', 'Большой планшет Lenovo для фильмов, учебы и заметок.', 3500, 17, 'tablets', 'lenovo', ['12.7″ 3K', 'MediaTek Dimensity 7050', '8 ГБ RAM', '128 ГБ']],
-  ['Apple Watch Series 9', 'apple-watch-series-9', 'Умные часы Apple с датчиками здоровья и ярким экраном.', 4700, 25, 'accessories', 'apple', ['Retina Always‑On', 'S9 SiP', 'GPS', '45 мм']],
-  ['Samsung Galaxy Watch6', 'samsung-galaxy-watch6', 'Умные часы Samsung для спорта, сна и уведомлений.', 3100, 28, 'accessories', 'samsung', ['AMOLED', 'Wear OS', 'GPS', '44 мм']],
-  ['AirPods Pro 2', 'airpods-pro-2', 'Беспроводные наушники Apple с активным шумоподавлением.', 2600, 40, 'accessories', 'apple', ['ANC', 'USB‑C MagSafe case', 'Spatial Audio', 'до 30 часов']],
-  ['Xiaomi Power Bank 20000', 'xiaomi-power-bank-20000', 'Портативный аккумулятор Xiaomi с быстрой зарядкой.', 3999, 60, 'accessories', 'xiaomi', ['20000 мА·ч', 'USB‑C', '22.5 Вт', '2 USB‑A']],
-  ['Samsung 27 Odyssey G5', 'samsung-27-odyssey-g5', 'Игровой монитор Samsung с высокой частотой обновления.', 3900, 10, 'monitors', 'samsung', ['27″ QHD', '165 Гц', '1 мс', 'VA']],
-  ['Dell UltraSharp U2723QE', 'dell-ultrasharp-u2723qe', 'Профессиональный 4K-монитор Dell с USB‑C хабом.', 3400, 5, 'monitors', 'dell', ['27″ 4K', 'IPS Black', 'USB‑C 90 Вт', 'HDR']],
-  ['ASUS ProArt PA278QV', 'asus-proart-pa278qv', 'Монитор ASUS для дизайнеров и работы с цветом.', 6200, 8, 'monitors', 'asus', ['27″ QHD', 'IPS', '100% sRGB', 'CalMAN Verified']],
-  ['HP M24fwa', 'hp-m24fwa', 'Тонкий домашний монитор HP со встроенными динамиками.', 4100, 22, 'monitors', 'hp', ['23.8″ FHD', 'IPS', '75 Гц', '2 динамика']],
-  ['BlackView TAB50 Wi-Fi 4/128GB Space Grey', 'blackview-tab50-wi-fi-4-128gb-grey', 'Компактный планшет BlackView с HD-экраном и 128 ГБ памяти.', 1899, 18, 'tablets', 'blackview', ['8″ HD', 'Rockchip', '4 ГБ RAM', '128 ГБ']],
-  ['BlackView Link2 Wi-Fi + 4G 4/128GB Black', 'blackview-link2-4g-4-128gb-black', 'Планшет BlackView с поддержкой 4G для учебы, видео и поездок.', 1899, 16, 'tablets', 'blackview', ['8.68″ WXGA', 'UniSOC', '4 ГБ RAM', '128 ГБ']],
-  ['Lenovo TAB One TB305FU 4/64GB Luna Grey', 'lenovo-tab-one-tb305fu-4-64gb-grey', 'Легкий планшет Lenovo TAB One с чехлом в комплекте.', 1999, 20, 'tablets', 'lenovo', ['8.7″ WXGA', 'MediaTek', '4 ГБ RAM', '64 ГБ']],
-  ['BlackView TAB60 Pro LTE 4/128GB Blue', 'blackview-tab60-pro-lte-4-128gb-blue', 'Планшет BlackView TAB60 Pro с большим экраном и мобильным интернетом.', 2239, 14, 'tablets', 'blackview', ['10.1″ HD', 'UniSOC', '4 ГБ RAM', '128 ГБ']],
-  ['PocketBook 619 Verse Lite Midnight Grey', 'pocketbook-619-verse-lite-grey', 'Электронная книга PocketBook с компактным экраном для чтения каждый день.', 2699, 12, 'tablets', 'pocketbook', ['6″ E Ink', '1024×758', '512 МБ RAM', '8 ГБ']],
-  ['Lenovo TAB TB311FU Wi-Fi 4/64GB Gray', 'lenovo-tab-tb311fu-4-64gb-gray', 'Планшет Lenovo TAB с WUXGA-дисплеем и защитным чехлом.', 2849, 15, 'tablets', 'lenovo', ['10.1″ WUXGA', 'MediaTek', '4 ГБ RAM', '64 ГБ']],
-  ['PocketBook 629 Verse Bright Blue', 'pocketbook-629-verse-bright-blue', 'Электронная книга PocketBook Verse с подсветкой и 8 ГБ памяти.', 2899, 10, 'tablets', 'pocketbook', ['6″ E Ink', '1024×758', '512 МБ RAM', '8 ГБ']],
-  ['Samsung Galaxy Tab A11 8.7 Wi-Fi 4/64GB Gray', 'samsung-galaxy-tab-a11-87-wi-fi-4-64gb-gray', 'Компактный планшет Samsung Galaxy Tab A11 для учебы и развлечений.', 3299, 17, 'tablets', 'samsung', ['8.7″ WXGA', '90 Гц', '4 ГБ RAM', '64 ГБ']],
-  ['Samsung Galaxy Tab A9+ 11 Wi-Fi 8/256GB Graphite', 'samsung-galaxy-tab-a9-plus-11-wi-fi-8-256gb', 'Планшет Samsung Galaxy Tab A9+ с большим экраном и 256 ГБ памяти.', 4899, 9, 'tablets', 'samsung', ['11″ FHD', 'Qualcomm', '8 ГБ RAM', '256 ГБ']],
-  ['Gembird TG-P-01 Thermal Pad 100x100x1mm', 'gembird-tg-p-01-thermal-pad', 'Термопрокладка Gembird для охлаждения компонентов ПК.', 35, 80, 'components', 'gembird', ['100×100×1 мм', 'для CPU/GPU', 'теплопроводящая прокладка', 'универсальная']],
-  ['Gembird TG-G3.0-01 Thermal Paste 3g', 'gembird-tg-g30-thermal-paste-3g', 'Термопаста Gembird для процессоров и видеокарт.', 45, 90, 'components', 'gembird', ['3 г', 'для CPU/GPU', 'шприц', 'серый состав']],
-  ['Xilence LGA1700 Air Cooler Mount Kit XZ175', 'xilence-lga1700-air-cooler-mount-kit-xz175', 'Комплект креплений Xilence для установки воздушного кулера на LGA1700.', 49, 35, 'components', 'xilence', ['LGA1700', 'для воздушных кулеров', 'монтажный комплект', 'XZ175']],
-  ['Gembird Fancase3 120mm Case Fan', 'gembird-fancase3-120mm-case-fan', 'Корпусной вентилятор Gembird для базового охлаждения системного блока.', 69, 60, 'components', 'gembird', ['120×120×25 мм', 'корпусной', 'тихая работа', '3-pin']],
-  ['Xilence XPF80.R.PWM Case Fan', 'xilence-xpf80-r-pwm-case-fan', 'Компактный PWM-вентилятор Xilence для корпуса ПК.', 79, 50, 'components', 'xilence', ['80 мм', 'PWM', 'корпусной', 'XF040']],
-  ['Xilence XPF120.R.PWM Case Fan', 'xilence-xpf120-r-pwm-case-fan', '120-мм корпусной вентилятор Xilence с PWM-управлением.', 99, 48, 'components', 'xilence', ['120 мм', 'PWM', 'корпусной', 'XF042']],
-  ['Gembird Virtus Plus USB Sound Card', 'gembird-virtus-plus-usb-sound-card', 'Внешняя USB-звуковая карта Gembird для наушников и микрофона.', 129, 30, 'components', 'gembird', ['USB', 'аудиовыход', 'микрофонный вход', 'SC-USB2.0-01']],
-  ['be quiet! DC2 Thermal Paste 3g', 'be-quiet-dc2-thermal-paste-3g', 'Термопаста be quiet! DC2 для эффективного охлаждения процессора.', 129, 42, 'components', 'be-quiet', ['3 г', 'для CPU/GPU', 'шприц', 'BZ004']],
-  ['Spire 420W OEM ATX Power Supply', 'spire-420w-oem-atx-power-supply', 'Блок питания Spire 420W для офисных и домашних сборок.', 199, 18, 'components', 'spire', ['420 Вт', 'ATX', 'OEM', 'без кабеля']],
-  ['Arctic Alpine 17 CPU Cooler', 'arctic-alpine-17-cpu-cooler', 'Процессорный кулер Arctic Alpine 17 для платформ Intel.', 219, 24, 'components', 'arctic', ['Intel', 'низкий профиль', 'активное охлаждение', 'Alpine 17']],
-  ['be quiet! Pure Wings 3 120mm Case Fan', 'be-quiet-pure-wings-3-120mm-case-fan', 'Тихий корпусной вентилятор be quiet! Pure Wings 3 для стабильного воздушного потока.', 229, 28, 'components', 'be-quiet', ['120 мм', 'корпусной', 'тихая работа', 'BL106']],
-  ['ASUS TUF Gaming TF120 ARGB Case Fan', 'asus-tuf-gaming-tf120-argb-case-fan', 'ARGB-вентилятор ASUS TUF Gaming TF120 для игровых сборок.', 279, 22, 'components', 'asus', ['120 мм', 'ARGB', 'корпусной', 'TUF Gaming']],
+  ['iPhone 15', 'iphone-15', 'Флагманский смартфон Apple', 8200, 50, 'smartphones', 'apple', {
+   'Экран': '6.1″ Super Retina XDR',
+   'Процессор': 'A16 Bionic',
+   'Память': '128 ГБ',
+   'Камера': '48 МП',
+ }],
 ] as const
 
 export async function seedDatabase() {
@@ -195,9 +130,7 @@ export async function seedDatabase() {
         price,
         stock,
         images: productImagesBySlug[slug] ?? categoryImagesBySlug[categorySlug],
-        specs: {
-          features: specs,
-        },
+        specs,
         categoryId: category.id,
         brandId: brand.id,
         deletedAt: null,
@@ -209,9 +142,7 @@ export async function seedDatabase() {
         price,
         stock,
         images: productImagesBySlug[slug] ?? categoryImagesBySlug[categorySlug],
-        specs: {
-          features: specs,
-        },
+        specs,
         categoryId: category.id,
         brandId: brand.id,
       },
@@ -292,11 +223,11 @@ export async function seedDatabase() {
   })
 
   const reviewsData = [
-    ['macbook-air-m2', 0, 5, 'Очень легкий и тихий ноутбук. Для учебы, браузера и работы с документами хватает с большим запасом.'],
-    ['iphone-15', 1, 5, 'Камера и экран отличные, батареи спокойно хватает на день активного использования.'],
-    ['samsung-galaxy-s24', 2, 4, 'Компактный корпус и быстрый интерфейс. Хотелось бы зарядку в комплекте, но сам телефон понравился.'],
-    ['airpods-pro-2', 0, 5, 'Шумоподавление заметно лучше старых наушников, удобно использовать в дороге и офисе.'],
-    ['dell-ultrasharp-u2723qe', 1, 4, 'Хороший монитор для работы с текстом и цветом, USB-C хаб сильно упрощает подключение ноутбука.'],
+//    ['macbook-air-m2', 0, 5, 'Очень легкий и тихий ноутбук. Для учебы, браузера и работы с документами хватает с большим запасом.'],
+      ['iphone-15', 1, 5, 'Камера и экран отличные, батареи спокойно хватает на день активного использования.'],
+    //['samsung-galaxy-s24', 2, 4, 'Компактный корпус и быстрый интерфейс. Хотелось бы зарядку в комплекте, но сам телефон понравился.'],
+    //['airpods-pro-2', 0, 5, 'Шумоподавление заметно лучше старых наушников, удобно использовать в дороге и офисе.'],
+    //['dell-ultrasharp-u2723qe', 1, 4, 'Хороший монитор для работы с текстом и цветом, USB-C хаб сильно упрощает подключение ноутбука.'],
   ] as const
 
   for (const [productSlug, userIndex, rating, text] of reviewsData) {
