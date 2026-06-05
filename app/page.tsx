@@ -10,20 +10,20 @@ export const metadata: Metadata = {
 
 const popularCategories = [
   {
-    title: 'Ноутбуки',
-    href: '/category/laptops',
+    title: 'Процессоры',
+    href: '/category/processory',
   },
   {
-    title: 'Смартфоны',
-    href: '/category/smartphones',
+    title: 'Видеокарты',
+    href: '/category/videokarty',
   },
   {
-    title: 'Планшеты',
-    href: '/category/tablets',
+    title: 'Оперативная память',
+    href: '/category/moduli-pamyati',
   },
   {
-    title: 'Аксессуары',
-    href: '/category/accessories',
+    title: 'SSD Накопители',
+    href: '/category/ssd-nakopiteli',
   },
 ];
 
