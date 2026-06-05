@@ -26,7 +26,7 @@ export function FavoriteButton({ product, className }: FavoriteButtonProps) {
     const success = isFavorite ? await removeItem(product.id) : await addItem(product);
 
     if (!success && useFavoriteStore.getState().errorCode === 'UNAUTHORIZED') {
-      router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
     }
   }
 

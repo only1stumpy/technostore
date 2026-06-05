@@ -87,7 +87,7 @@ export default function OrdersPage() {
               <h2 className="text-2xl font-bold">Войдите, чтобы открыть заказы</h2>
               <p className="mt-2 text-muted-foreground">История заказов доступна только авторизованным пользователям</p>
             </div>
-            <Link href="/login">
+            <Link href="/login?callbackUrl=/orders">
               <Button>Войти</Button>
             </Link>
           </CardContent>

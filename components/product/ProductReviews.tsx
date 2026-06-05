@@ -69,7 +69,7 @@ export function ProductReviews({ productId, ratingAverage, reviewsCount = 0 }: P
       const json: ReviewsResponse = await response.json();
 
       if (response.status === 401 || json.code === 'UNAUTHORIZED') {
-        router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+        router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
         return;
       }
 

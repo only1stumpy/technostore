@@ -13,7 +13,7 @@ export default async function ComparePage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login?returnTo=/compare');
+    redirect('/login?callbackUrl=/compare');
   }
 
   const comparison = await comparisonService.getComparison(user.userId);

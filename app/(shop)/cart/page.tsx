@@ -57,7 +57,7 @@ export default function CartPage() {
               <h2 className="text-2xl font-bold">Войдите, чтобы открыть корзину</h2>
               <p className="mt-2 text-muted-foreground">Корзина доступна только авторизованным пользователям</p>
             </div>
-            <Link href="/login">
+            <Link href="/login?callbackUrl=/cart">
               <Button>Войти</Button>
             </Link>
           </CardContent>

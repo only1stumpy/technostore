@@ -66,7 +66,7 @@ export function ProductPageClient({ id }: { id: string }) {
       const { error: errorMessage, errorCode } = useCartStore.getState();
 
       if (errorCode === 'UNAUTHORIZED') {
-        router.push(`/login?redirect=/product/${product.id}`);
+        router.push(`/login?callbackUrl=${encodeURIComponent(`/product/${product.id}`)}`);
         return;
       }
 

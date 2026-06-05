@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { ToastContainer, useToast } from '@/components/ui/Toast';
+import { getSafeCallbackUrl } from '@/lib/utils';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -67,7 +68,8 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Неверный код');
       }
 
-      router.push('/');
+      const callbackUrl = getSafeCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl'));
+      router.push(callbackUrl);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неверный код');

@@ -14,7 +14,7 @@ export default async function FavoritesPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login?returnTo=/favorites');
+    redirect('/login?callbackUrl=/favorites');
   }
 
   const favorites = await favoriteService.getFavorites(user.userId);

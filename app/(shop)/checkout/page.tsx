@@ -90,7 +90,7 @@ export default function CheckoutPage() {
               <h2 className="text-2xl font-bold">Войдите, чтобы оформить заказ</h2>
               <p className="mt-2 text-muted-foreground">Оформление заказа доступно только авторизованным пользователям</p>
             </div>
-            <Link href="/login">
+            <Link href="/login?callbackUrl=/checkout">
               <Button>Войти</Button>
             </Link>
           </CardContent>

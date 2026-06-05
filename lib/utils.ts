@@ -5,6 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getSafeCallbackUrl(value: string | null | undefined, fallback = '/'): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(value, 'http://localhost');
+    if (url.origin !== 'http://localhost') {
+      return fallback;
+    }
+    return value;
+  } catch {
+    return fallback;
+  }
+}
+
 export function formatPrice(price: number | string): string {
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
   return `${new Intl.NumberFormat('ru-RU', {

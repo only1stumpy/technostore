@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
     const description = isUnauthorized
       ? 'Детали заказа доступны только авторизованным пользователям'
       : 'Проверьте ссылку или вернитесь к истории заказов';
-    const href = isUnauthorized ? '/login' : '/orders';
+    const href = isUnauthorized ? `/login?callbackUrl=${encodeURIComponent(`/orders/${params.id}`)}` : '/orders';
     const buttonText = isUnauthorized ? 'Войти' : 'К заказам';
 
     return (

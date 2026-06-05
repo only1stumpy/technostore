@@ -26,7 +26,7 @@ export function CompareButton({ product, className }: CompareButtonProps) {
     const success = isCompared ? await removeItem(product.id) : await addItem(product);
 
     if (!success && useComparisonStore.getState().errorCode === 'UNAUTHORIZED') {
-      router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
     }
   }
 
