@@ -16,7 +16,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const imageUrl = product.imageUrl?.replace(/^\//, '').startsWith('products/') ? null : product.imageUrl;
 
   return (
-    <div className="group relative bg-white border border-gray-200 hover:border-red-600 transition-colors flex flex-col h-full">
+    <div className="group relative flex h-full w-64 flex-col border border-gray-200 bg-white transition-colors hover:border-red-600">
       <div className="absolute right-3 top-3 z-10 flex gap-2">
         <CompareButton product={product} />
         <FavoriteButton product={product} />
