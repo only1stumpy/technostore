@@ -69,7 +69,7 @@ function ProductSection({ title, subtitle, products }: { title: string; subtitle
       </div>
       <div ref={carouselRef} className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2">
         {products.map((product) => (
-          <div key={`${title}-${product.id}`} className="min-w-[260px] snap-start sm:min-w-[300px] lg:min-w-[280px] xl:min-w-[300px]">
+          <div key={`${title}-${product.id}`} className="w-64 shrink-0 snap-start">
             <ProductCardComponent product={product} />
           </div>
         ))}
