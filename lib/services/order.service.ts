@@ -2,6 +2,7 @@ import type { Cart, CreateOrderInput, OrderDetail, OrderSummary } from '@/types/
 import { orderRepository } from '@/lib/repositories/order.repository';
 import type { IOrderRepository } from '@/lib/repositories/interfaces';
 import type { IOrderService } from './interfaces';
+import type { OrderStatus } from '@/lib/constants';
 
 export class OrderService implements IOrderService {
   constructor(private orderRepo: IOrderRepository = orderRepository) {}
@@ -20,6 +21,10 @@ export class OrderService implements IOrderService {
 
   async cancelOrder(userId: string, orderId: string): Promise<OrderDetail> {
     return this.orderRepo.cancelByUser(userId, orderId);
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<{ order: OrderDetail; previousStatus: OrderStatus }> {
+    return this.orderRepo.updateStatusByAdmin(orderId, status);
   }
 
   async repeatOrder(userId: string, orderId: string): Promise<Cart> {

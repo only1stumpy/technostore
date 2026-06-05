@@ -32,9 +32,46 @@ export class RateLimiter {
     if (attempts > config.maxAttempts) {
       const timeRemaining = await this.redisClient.ttl(key);
       throw new RateLimitError(
-        `Too many attempts. Try again in ${Math.ceil(timeRemaining / 60)} minutes`
+        `Too many attempts. Try again in ${Math.ceil(timeRemaining / 60)} minutes`,
+        timeRemaining
       );
     }
+  }
+
+  async checkLimitWithIp(
+    identifier: string,
+    ip: string,
+    config: RateLimitConfig
+  ): Promise<void> {
+    if (!this.redisClient) {
+      return;
+    }
+
+    const phoneKey = `rate:${identifier}`;
+    const ipKey = `rate:ip:${ip}`;
+
+    const [phoneAttempts, ipAttempts] = await Promise.all([
+      this.incrementAndCheck(phoneKey, config),
+      this.incrementAndCheck(ipKey, config),
+    ]);
+
+    if (phoneAttempts > config.maxAttempts || ipAttempts > config.maxAttempts) {
+      const ttl = await this.redisClient.ttl(phoneKey);
+      throw new RateLimitError(
+        `Too many attempts. Try again in ${Math.ceil(ttl / 60)} minutes`,
+        ttl
+      );
+    }
+  }
+
+  private async incrementAndCheck(key: string, config: RateLimitConfig): Promise<number> {
+    const [attempts] = await this.redisClient!
+      .multi()
+      .incr(key)
+      .expire(key, config.windowSeconds, 'NX')
+      .exec<[number, 0 | 1]>();
+
+    return attempts;
   }
 
   async getRemainingAttempts(

@@ -1,4 +1,5 @@
 import type { ProductCard, CursorPaginatedResponse, ProductFilters, ProductDetail, PriceRange, Brand, CategoryTree, Cart, CreateOrderInput, OrderDetail, OrderSummary, FavoritesResponse, ComparisonResponse, ProductReview, AdminReview, ReviewStatus, PaginatedResponse, AppliedPromoCode, AdminPromoCode, PromoCodeType, SpecFacet } from '@/types/api';
+import type { OrderStatus } from '@/lib/constants';
 
 export interface IProductRepository {
   findMany(filters: ProductFilters): Promise<CursorPaginatedResponse<ProductCard>>;
@@ -83,5 +84,7 @@ export interface IOrderRepository {
   findManyByUserId(userId: string): Promise<OrderSummary[]>;
   findByIdForUser(userId: string, orderId: string): Promise<OrderDetail | null>;
   cancelByUser(userId: string, orderId: string): Promise<OrderDetail>;
+  cancelOrder(orderId: string, options: { userId?: string }): Promise<OrderDetail>;
+  updateStatusByAdmin(orderId: string, status: OrderStatus): Promise<{ order: OrderDetail; previousStatus: OrderStatus }>;
   repeatForUser(userId: string, orderId: string): Promise<Cart>;
 }

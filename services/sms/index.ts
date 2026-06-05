@@ -12,29 +12,46 @@ export class SmsService {
   }
 
   private initializeProvider(): SmsProvider {
-    const providerType = process.env.SMS_PROVIDER || 'mock';
+    const providerType = process.env.SMS_PROVIDER;
+
+    if (!providerType) {
+      throw new Error(
+        'SMS_PROVIDER environment variable is required. Set to "mock" for demo mode, or configure a real provider (messaggio, budgetsms).'
+      );
+    }
+
     const apiKey = process.env.SMS_API_KEY || '';
     const apiUrl = process.env.SMS_API_URL || '';
 
     switch (providerType) {
       case 'messaggio':
         if (!apiKey || !apiUrl) {
-          console.warn('⚠️  Messaggio credentials missing, falling back to mock');
-          return new MockSmsProvider();
+          throw new Error(
+            'SMS_PROVIDER=messaggio requires SMS_API_KEY and SMS_API_URL environment variables'
+          );
         }
         return new MessaggioSmsProvider(apiKey, apiUrl);
 
       case 'budgetsms':
         if (!apiKey || !apiUrl) {
-          console.warn('⚠️  BudgetSMS credentials missing, falling back to mock');
-          return new MockSmsProvider();
+          throw new Error(
+            'SMS_PROVIDER=budgetsms requires SMS_API_KEY and SMS_API_URL environment variables'
+          );
         }
         return new BudgetSmsSmsProvider(apiKey, apiUrl);
 
       case 'mock':
-      default:
         return new MockSmsProvider();
+
+      default:
+        throw new Error(
+          `Unknown SMS_PROVIDER="${providerType}". Supported: mock, messaggio, budgetsms`
+        );
     }
+  }
+
+  isDemo(): boolean {
+    return this.provider instanceof MockSmsProvider;
   }
 
   generateVerificationCode(): SmsVerificationCode {
@@ -44,7 +61,7 @@ export class SmsService {
     return { code, expiresAt };
   }
 
-  async sendVerificationCode(phone: string, code: string): Promise<{ success: boolean; error?: string }> {
+  async sendVerificationCode(phone: string, code: string): Promise<{ success: boolean; error?: string; code?: string }> {
     const message = `Ваш код подтверждения TechnoStore: ${code}. Действителен 10 минут.`;
 
     const result = await this.provider.sendSms(phone, message);
@@ -56,6 +73,7 @@ export class SmsService {
     return {
       success: result.success,
       error: result.error,
+      ...(this.isDemo() && { code }),
     };
   }
 

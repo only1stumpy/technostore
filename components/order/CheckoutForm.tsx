@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -33,6 +34,7 @@ type ApplyPromoCodeResponse = {
 export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', initialName = '', initialAddress = '' }: CheckoutFormProps) {
   const router = useRouter();
   const setCart = useCartStore((state) => state.setCart);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => uuidv4());
   const [recipientName, setRecipientName] = useState(initialName);
   const [address, setAddress] = useState(initialAddress);
   const [phone, setPhone] = useState(initialPhone);
@@ -43,6 +45,10 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', in
   const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIdempotencyKey(uuidv4());
+  }, []);
 
   const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = appliedPromoCode?.total ?? totalAmount;
@@ -102,12 +108,17 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', in
           phone,
           comment: comment || null,
           promoCode: appliedPromoCode?.code ?? null,
+          idempotencyKey,
         }),
       });
       const json: OrderResponse = await response.json();
 
       if (!response.ok || !json.data) {
-        setError(json.error || 'Не удалось оформить заказ');
+        if (response.status === 409) {
+          setError('Заказ уже был создан. Обновите страницу.');
+        } else {
+          setError(json.error || 'Не удалось оформить заказ');
+        }
         return;
       }
 
@@ -115,7 +126,7 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', in
       router.push(`/orders/${json.data.id}`);
       router.refresh();
     } catch {
-      setError('Не удалось оформить заказ');
+      setError('Не удалось оформить заказ. Проверьте соединение.');
     } finally {
       setIsSubmitting(false);
     }

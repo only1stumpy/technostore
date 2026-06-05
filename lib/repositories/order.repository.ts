@@ -3,11 +3,31 @@ import type { Cart, CartItem, CreateOrderInput, OrderDetail, OrderItem, OrderSum
 import type { IOrderRepository } from './interfaces';
 import { prisma } from '@/lib/prisma';
 import { AppError, NotFoundError, ValidationError } from '@/lib/errors';
+import { ORDER_STATUS, ORDER_STATUS_TRANSITIONS, type OrderStatus } from '@/lib/constants';
+import { createHash } from 'crypto';
 
 export class OrderRepository implements IOrderRepository {
   constructor(private prismaClient: PrismaClient = prisma) {}
 
   async createFromCart(userId: string, input: CreateOrderInput): Promise<OrderDetail> {
+    if (input.idempotencyKey) {
+      const existingOrder = await this.findByIdempotencyKey(userId, input.idempotencyKey);
+
+      if (existingOrder) {
+        const requestFingerprint = this.computeFingerprint(input);
+
+        if (existingOrder.inputFingerprint && existingOrder.inputFingerprint !== requestFingerprint) {
+          throw new AppError(
+            'Идемпотентный ключ уже использован с другими данными заказа',
+            409,
+            'IDEMPOTENCY_KEY_CONFLICT'
+          );
+        }
+
+        return this.formatOrderDetail(existingOrder);
+      }
+    }
+
     const orderId = await this.prismaClient.$transaction(async (tx) => {
       const cart = await tx.cart.findUnique({
         where: { userId },
@@ -97,56 +117,98 @@ export class OrderRepository implements IOrderRepository {
         }
       }
 
-      const order = await tx.order.create({
-        data: {
-          userId,
-          subtotal,
-          discountAmount,
-          total,
-          recipientName: input.recipientName,
-          address: input.address,
-          phone: input.phone,
-          comment: input.comment || null,
-          items: {
-            create: cart.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.product.price,
-            })),
-          },
-          promoCode: promoCodeId && promoCode ? {
-            create: {
-              promoCodeId,
-              code: promoCode,
-              discountAmount,
-            },
-          } : undefined,
-        },
-      });
+      const inputFingerprint = input.idempotencyKey ? this.computeFingerprint(input) : null;
 
-      if (promoCodeId) {
-        const updatedPromoCode = await tx.promoCode.updateMany({
-          where: {
-            id: promoCodeId,
-            ...(promoUsageLimit === null ? {} : { usedCount: { lt: promoUsageLimit } }),
-          },
+      try {
+        const order = await tx.order.create({
           data: {
-            usedCount: {
-              increment: 1,
+            userId,
+            idempotencyKey: input.idempotencyKey || null,
+            inputFingerprint,
+            subtotal,
+            discountAmount,
+            total,
+            recipientName: input.recipientName,
+            address: input.address,
+            phone: input.phone,
+            comment: input.comment || null,
+            items: {
+              create: cart.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.product.price,
+              })),
             },
+            promoCode: promoCodeId && promoCode ? {
+              create: {
+                promoCodeId,
+                code: promoCode,
+                discountAmount,
+              },
+            } : undefined,
           },
         });
 
-        if (updatedPromoCode.count !== 1) {
-          throw new ValidationError('Лимит использования промокода исчерпан');
+        if (promoCodeId) {
+          const updatedPromoCode = await tx.promoCode.updateMany({
+            where: {
+              id: promoCodeId,
+              ...(promoUsageLimit === null ? {} : { usedCount: { lt: promoUsageLimit } }),
+            },
+            data: {
+              usedCount: {
+                increment: 1,
+              },
+            },
+          });
+
+          if (updatedPromoCode.count !== 1) {
+            throw new ValidationError('Лимит использования промокода исчерпан');
+          }
         }
+
+        await tx.cartItem.deleteMany({
+          where: { cartId: cart.id },
+        });
+
+        return order.id;
+      } catch (error: any) {
+        if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
+          const winnerOrder = await tx.order.findFirst({
+            where: {
+              userId,
+              idempotencyKey: input.idempotencyKey,
+            },
+            include: {
+              promoCode: true,
+              items: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      images: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          if (winnerOrder) {
+            const requestFingerprint = this.computeFingerprint(input);
+            if (winnerOrder.inputFingerprint && winnerOrder.inputFingerprint !== requestFingerprint) {
+              throw new AppError(
+                'Идемпотентный ключ уже использован с другими данными заказа',
+                409,
+                'IDEMPOTENCY_KEY_CONFLICT'
+              );
+            }
+            return winnerOrder.id;
+          }
+        }
+        throw error;
       }
-
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
-
-      return order.id;
     });
 
     const order = await this.findByIdForUser(userId, orderId);
@@ -205,12 +267,112 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async cancelByUser(userId: string, orderId: string): Promise<OrderDetail> {
-    const orderIdResult = await this.prismaClient.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({
-        where: {
-          id: orderId,
-          userId,
+    return this.cancelOrder(orderId, { userId });
+  }
+
+  async cancelOrder(orderId: string, options: { userId?: string }): Promise<OrderDetail> {
+    await this.prismaClient.$transaction(async (tx) => {
+      await this.executeCancellation(orderId, options.userId, tx);
+    });
+
+    const order = options.userId
+      ? await this.findByIdForUser(options.userId, orderId)
+      : await this.findOrderByIdForAdmin(orderId).then(o => o ? this.formatOrderDetail(o) : null);
+
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
+
+    return order;
+  }
+
+  private async executeCancellation(
+    orderId: string,
+    userId: string | undefined,
+    tx: Parameters<Parameters<typeof this.prismaClient.$transaction>[0]>[0]
+  ): Promise<void> {
+    const order = await tx.order.findFirst({
+      where: {
+        id: orderId,
+        ...(userId ? { userId } : {}),
+      },
+      include: {
+        promoCode: true,
+        items: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
+
+    if (order.status === ORDER_STATUS.CANCELLED) {
+      throw new ValidationError('Заказ уже отменен');
+    }
+
+    if (userId) {
+      if (order.status !== ORDER_STATUS.NEW) {
+        throw new ValidationError('Отменить можно только новый заказ');
+      }
+    } else {
+      if (!ORDER_STATUS_TRANSITIONS[order.status].includes(ORDER_STATUS.CANCELLED)) {
+        throw new ValidationError('Недопустимый переход статуса заказа');
+      }
+    }
+
+    const updated = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        ...(userId ? { userId } : {}),
+        status: order.status,
+      },
+      data: { status: ORDER_STATUS.CANCELLED },
+    });
+
+    if (updated.count !== 1) {
+      throw new ValidationError('Статус заказа изменился, обновите страницу');
+    }
+
+    for (const item of order.items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: {
+            increment: item.quantity,
+          },
         },
+      });
+    }
+
+    if (order.promoCode) {
+      await tx.promoCode.updateMany({
+        where: {
+          id: order.promoCode.promoCodeId,
+          usedCount: { gt: 0 },
+        },
+        data: {
+          usedCount: {
+            decrement: 1,
+          },
+        },
+      });
+    }
+  }
+
+  async updateStatusByAdmin(orderId: string, status: OrderStatus): Promise<{ order: OrderDetail; previousStatus: OrderStatus }> {
+    if (status === ORDER_STATUS.CANCELLED) {
+      const orderBefore = await this.findOrderByIdForAdmin(orderId);
+      if (!orderBefore) {
+        throw new NotFoundError('Order not found');
+      }
+      const previousStatus = orderBefore.status;
+      const order = await this.cancelOrder(orderId, {});
+      return { order, previousStatus };
+    }
+
+    const result = await this.prismaClient.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
         include: {
           promoCode: true,
           items: true,
@@ -221,59 +383,81 @@ export class OrderRepository implements IOrderRepository {
         throw new NotFoundError('Order not found');
       }
 
-      if (order.status !== 'NEW') {
-        throw new ValidationError('Отменить можно только новый заказ');
+      if (order.status === status) {
+        const currentOrder = await tx.order.findUnique({
+          where: { id: orderId },
+          include: {
+            promoCode: true,
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+        if (!currentOrder) {
+          throw new NotFoundError('Order not found');
+        }
+        return {
+          order: currentOrder,
+          previousStatus: order.status,
+        };
+      }
+
+      if (!ORDER_STATUS_TRANSITIONS[order.status].includes(status)) {
+        throw new ValidationError('Недопустимый переход статуса заказа');
       }
 
       const updated = await tx.order.updateMany({
         where: {
           id: orderId,
-          userId,
-          status: 'NEW',
+          status: order.status,
         },
-        data: {
-          status: 'CANCELLED',
-        },
+        data: { status },
       });
 
       if (updated.count !== 1) {
         throw new ValidationError('Статус заказа изменился, обновите страницу');
       }
 
-      for (const item of order.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity,
+      const updatedOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          promoCode: true,
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  images: true,
+                },
+              },
             },
           },
-        });
+        },
+      });
+
+      if (!updatedOrder) {
+        throw new NotFoundError('Order not found');
       }
 
-      if (order.promoCode) {
-        await tx.promoCode.updateMany({
-          where: {
-            id: order.promoCode.promoCodeId,
-            usedCount: { gt: 0 },
-          },
-          data: {
-            usedCount: {
-              decrement: 1,
-            },
-          },
-        });
-      }
-
-      return order.id;
+      return {
+        order: updatedOrder,
+        previousStatus: order.status,
+      };
     });
 
-    const order = await this.findByIdForUser(userId, orderIdResult);
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
-
-    return order;
+    return {
+      order: this.formatOrderDetail(result.order),
+      previousStatus: result.previousStatus,
+    };
   }
 
   async repeatForUser(userId: string, orderId: string): Promise<Cart> {
@@ -421,6 +605,49 @@ export class OrderRepository implements IOrderRepository {
                 images: true,
               },
             },
+          },
+        },
+      },
+    });
+  }
+
+  private async findOrderByIdForAdmin(orderId: string) {
+    return this.prismaClient.order.findUnique({
+      where: { id: orderId },
+      include: {
+        promoCode: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private computeFingerprint(input: CreateOrderInput): string {
+    const payload = JSON.stringify({
+      address: input.address?.trim(),
+      phone: input.phone?.trim(),
+      promoCode: input.promoCode?.trim() || null,
+    });
+    return createHash('sha256').update(payload).digest('hex');
+  }
+
+  private async findByIdempotencyKey(userId: string, idempotencyKey: string) {
+    return this.prismaClient.order.findFirst({
+      where: { userId, idempotencyKey },
+      include: {
+        promoCode: true,
+        items: {
+          include: {
+            product: { select: { id: true, name: true, images: true } },
           },
         },
       },

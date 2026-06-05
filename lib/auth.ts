@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { JWTPayload } from '@/types/api';
 import { UnauthorizedError, ForbiddenError } from './errors';
+import { prisma } from './prisma';
 
 const JWT_SECRET_STRING = process.env.JWT_SECRET;
 if (!JWT_SECRET_STRING) {
@@ -69,8 +70,18 @@ export async function requireAuth(): Promise<JWTPayload> {
 
 export async function requireAdmin(): Promise<JWTPayload> {
   const user = await requireAuth();
-  if (user.role !== 'ADMIN') {
+  const currentUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { role: true },
+  });
+
+  if (!currentUser) {
+    throw new UnauthorizedError('User not found');
+  }
+
+  if (currentUser.role !== 'ADMIN') {
     throw new ForbiddenError('Admin access required');
   }
-  return user;
+
+  return { ...user, role: currentUser.role };
 }

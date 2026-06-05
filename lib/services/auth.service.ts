@@ -19,7 +19,7 @@ export class AuthService implements IAuthService {
     private sms: SmsService = smsService
   ) {}
 
-  async sendVerificationCode(phone: string): Promise<{ code?: string }> {
+  async sendVerificationCode(phone: string, ip?: string): Promise<{ code?: string }> {
     const normalizedPhone = normalizePhone(phone);
 
     if (!validatePhone(normalizedPhone)) {
@@ -30,10 +30,18 @@ export class AuthService implements IAuthService {
       throw new ConfigurationError('Redis not configured');
     }
 
-    await this.limiter.checkLimit(
-      `rate:send-code:${normalizedPhone}`,
-      RATE_LIMITS.SMS_SEND
-    );
+    if (ip) {
+      await this.limiter.checkLimitWithIp(
+        `send-code:${normalizedPhone}`,
+        ip,
+        RATE_LIMITS.SMS_SEND
+      );
+    } else {
+      await this.limiter.checkLimit(
+        `rate:send-code:${normalizedPhone}`,
+        RATE_LIMITS.SMS_SEND
+      );
+    }
 
     const { code } = this.sms.generateVerificationCode();
 
@@ -46,7 +54,7 @@ export class AuthService implements IAuthService {
     const codeHash = createHash('sha256').update(code).digest('hex');
     await this.redisClient.set(`sms:${normalizedPhone}`, codeHash, { ex: SMS_CODE_TTL });
 
-    return (process.env.SMS_PROVIDER || 'mock') === 'mock' ? { code } : {};
+    return result.code ? { code: result.code } : {};
   }
 
   async verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{

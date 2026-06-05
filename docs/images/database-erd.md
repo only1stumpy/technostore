@@ -92,6 +92,8 @@ FIXED FIXED
 
   "Order" {
     String id "🗝️"
+    String idempotencyKey "❓"
+    String inputFingerprint "❓"
     OrderStatus status 
     Decimal subtotal 
     Decimal discountAmount 

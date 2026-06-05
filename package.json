@@ -4,11 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bunx --bun prisma generate && bunx --bun prisma migrate deploy && next build",
+    "build": "bun prisma/seed.ts && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "bunx --bun prisma generate",
-    "db:seed": "bun prisma/seed.ts"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "bunx --bun prisma generate",
+    "db:migrate:dev": "bunx --bun prisma migrate dev",
+    "db:migrate:deploy": "bunx --bun prisma migrate deploy",
+    "db:migrate:status": "bunx --bun prisma migrate status",
+    "db:seed": "bun prisma/seed.ts",
+    "postinstall": "bunx --bun prisma generate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -29,6 +34,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
+    "uuid": "^14.0.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"
   },
@@ -37,6 +43,7 @@
     "@types/node": "^20.19.41",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^11.0.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.6",

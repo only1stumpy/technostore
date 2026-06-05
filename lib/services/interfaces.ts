@@ -1,7 +1,8 @@
 import type { Cart, CreateOrderInput, OrderDetail, OrderSummary, FavoritesResponse, ComparisonResponse, ProductReview, AdminReview, ReviewStatus, PaginatedResponse, AppliedPromoCode, AdminPromoCode, PromoCodeType } from '@/types/api';
+import type { OrderStatus } from '@/lib/constants';
 
 export interface IAuthService {
-  sendVerificationCode(phone: string): Promise<{ code?: string }>;
+  sendVerificationCode(phone: string, ip?: string): Promise<{ code?: string }>;
   verifyCodeAndLogin(phone: string, code: string, name?: string): Promise<{
     user: {
       id: string;
@@ -78,5 +79,6 @@ export interface IOrderService {
   getOrders(userId: string): Promise<OrderSummary[]>;
   getOrder(userId: string, orderId: string): Promise<OrderDetail | null>;
   cancelOrder(userId: string, orderId: string): Promise<OrderDetail>;
+  updateOrderStatus(orderId: string, status: OrderStatus): Promise<{ order: OrderDetail; previousStatus: OrderStatus }>;
   repeatOrder(userId: string, orderId: string): Promise<Cart>;
 }

@@ -12,6 +12,7 @@ const createOrderSchema = z.object({
   phone: z.string().trim().min(5, 'Укажите телефон').transform(normalizePhone).refine(validatePhone, 'Укажите корректный телефон'),
   comment: z.string().trim().max(500, 'Комментарий слишком длинный').optional().nullable(),
   promoCode: applyPromoCodeSchema.shape.code.optional().nullable(),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export async function GET() {
@@ -48,7 +49,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const input = createOrderSchema.parse(body);
+    const headerKey = request.headers.get('Idempotency-Key');
+
+    const inputWithKey = {
+      ...body,
+      idempotencyKey: body.idempotencyKey || headerKey || undefined,
+    };
+
+    const input = createOrderSchema.parse(inputWithKey);
     const order = await orderService.createOrder(user.userId, input);
 
     return NextResponse.json({ success: true, data: order }, { status: 201 });
@@ -61,9 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (isAppError(error)) {
+      const statusCode = error.code === 'IDEMPOTENCY_KEY_CONFLICT' ? 409 : error.statusCode;
       return NextResponse.json(
         { error: error.message, code: error.code },
-        { status: error.statusCode }
+        { status: statusCode }
       );
     }
 

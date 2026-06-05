@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [demoCode, setDemoCode] = useState<string | null>(null);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +37,8 @@ export default function RegisterPage() {
       }
 
       if (data.code) {
-        toast.info(`Тестовый код: ${data.code}`);
+        setDemoCode(data.code);
+        toast.info(`Демонстрационный код: ${data.code}`);
       }
 
       setStep('code');
@@ -134,6 +136,14 @@ export default function RegisterPage() {
             </form>
           ) : (
             <form onSubmit={handleVerifyCode} className="space-y-4">
+              {demoCode && (
+                <div className="text-sm text-primary bg-primary/10 p-3 rounded-lg border border-primary/20">
+                  <strong>Демонстрационный режим:</strong> реальное SMS не отправляется.
+                  <br />
+                  Используйте код: <strong className="text-lg tracking-wider">{demoCode}</strong>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="code" className="block text-sm font-medium mb-2">
                   Код из SMS

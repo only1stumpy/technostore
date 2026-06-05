@@ -11,7 +11,7 @@ export async function GET() {
       prisma.product.count({ where: { deletedAt: null } }),
       prisma.order.count(),
       prisma.user.count(),
-      prisma.order.aggregate({ _sum: { total: true } }),
+      prisma.order.aggregate({ where: { status: 'DELIVERED' }, _sum: { total: true } }),
       prisma.order.findMany({
         take: 5,
         include: {

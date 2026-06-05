@@ -3,21 +3,10 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { NotFoundError, ValidationError, isAppError } from '@/lib/errors';
-import { ORDER_STATUS } from '@/lib/constants';
+import { NotFoundError, isAppError } from '@/lib/errors';
+import { orderService } from '@/lib/services/order.service';
 import { adminOrderStatusSchema } from '@/lib/validation/admin';
 import { logAdminAction } from '@/lib/admin-action-log';
-
-type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];
-
-const ALLOWED_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  [ORDER_STATUS.NEW]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.SHIPPED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DELIVERED],
-  [ORDER_STATUS.DELIVERED]: [],
-  [ORDER_STATUS.CANCELLED]: [],
-};
 
 function formatOrder(order: Prisma.OrderGetPayload<{
   include: {
@@ -116,58 +105,17 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     const input = adminOrderStatusSchema.parse(body);
-    const currentOrder = await prisma.order.findUnique({
+    const { order, previousStatus } = await orderService.updateOrderStatus(id, input.status);
+    const orderOwner = await prisma.order.findUnique({
       where: { id },
-      select: { status: true },
-    });
-
-    if (!currentOrder) {
-      throw new NotFoundError('Order not found');
-    }
-
-    if (
-      currentOrder.status !== input.status &&
-      !ALLOWED_STATUS_TRANSITIONS[currentOrder.status].includes(input.status)
-    ) {
-      throw new ValidationError('Недопустимый переход статуса заказа');
-    }
-
-    const updateResult = await prisma.order.updateMany({
-      where: { id, status: currentOrder.status },
-      data: { status: input.status },
-    });
-
-    if (updateResult.count === 0) {
-      throw new ValidationError('Статус заказа изменился, обновите страницу');
-    }
-
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
-        },
-        promoCode: true,
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                images: true,
-              },
-            },
-          },
-        },
+      select: {
+        user: { select: { id: true, name: true, phone: true } },
       },
     });
+    const user = orderOwner?.user;
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
+    if (!user) {
+      throw new NotFoundError('User not found');
     }
 
     await logAdminAction({
@@ -176,12 +124,12 @@ export async function PATCH(
       entityType: 'order',
       entityId: id,
       metadata: {
-        from: currentOrder.status,
+        from: previousStatus,
         to: input.status,
       },
     });
 
-    return NextResponse.json({ success: true, data: formatOrder(order) });
+    return NextResponse.json({ success: true, data: { ...order, user } });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0].message }, { status: 400 });

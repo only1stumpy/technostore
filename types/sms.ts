@@ -1,5 +1,5 @@
 export interface SmsProvider {
-  sendSms(phone: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }>;
+  sendSms(phone: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string; code?: string }>;
 }
 
 export interface SmsVerificationCode {

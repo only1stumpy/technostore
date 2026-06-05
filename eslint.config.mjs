@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude worktrees:
+    ".claude/**",
+    // Document generators (legacy CommonJS, not maintained):
+    "docs/create_diploma_speech_docx.js",
+    "docs/create_prediploma_presentation.js",
   ]),
 ]);
 

@@ -41,7 +41,7 @@ export class NotFoundError extends AppError {
 }
 
 export class RateLimitError extends AppError {
-  constructor(message: string) {
+  constructor(message: string, public retryAfter?: number) {
     super(message, 429, 'RATE_LIMIT_EXCEEDED');
   }
 }

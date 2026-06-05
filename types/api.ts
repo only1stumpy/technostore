@@ -210,6 +210,7 @@ export type CreateOrderInput = {
   phone: string;
   comment?: string | null;
   promoCode?: string | null;
+  idempotencyKey?: string;
 };
 
 export type FavoriteItem = ProductCard & {

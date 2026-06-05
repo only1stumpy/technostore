@@ -44,7 +44,7 @@ export default function AdminPage() {
         <StatCard label="Товары" value={stats?.productsCount ?? 0} />
         <StatCard label="Заказы" value={stats?.ordersCount ?? 0} />
         <StatCard label="Пользователи" value={stats?.usersCount ?? 0} />
-        <StatCard label="Выручка" value={formatPrice(stats?.revenue ?? 0)} />
+        <StatCard label="Выручка (доставлено)" value={formatPrice(stats?.revenue ?? 0)} />
       </div>
       <Card>
         <CardContent className="pt-6">
