@@ -4,9 +4,15 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
-import { NotFoundError, ValidationError, isAppError } from '@/lib/errors';
+import { NotFoundError, ValidationError } from '@/lib/errors';
+import { parseJson, parseParams, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { adminProductSchema } from '@/lib/validation/admin';
 import { logAdminAction } from '@/lib/admin-action-log';
+
+const adminProductParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Product id is required'),
+});
 
 function formatProduct(product: Prisma.ProductGetPayload<{ include: { category: true; brand: true } }>) {
   return {
@@ -31,7 +37,7 @@ export async function GET(
   try {
     await requireAdmin();
 
-    const { id } = await params;
+    const { id } = await parseParams(params, adminProductParamsSchema);
     const product = await prisma.product.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -46,12 +52,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: formatProduct(product) });
   } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin get product error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
@@ -60,10 +61,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const { id } = await params;
-    const body = await request.json();
+    const { id } = await parseParams(params, adminProductParamsSchema);
+    const body = await parseJson<unknown>(request);
     const input = adminProductSchema.parse(body);
     const existingProduct = await prisma.product.findFirst({
       where: { id, deletedAt: null },
@@ -126,36 +129,20 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: formatProduct(product) });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return NextResponse.json({ error: 'Товар с таким slug уже существует' }, { status: 400 });
-      }
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
-      }
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin update product error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const { id } = await params;
+    const { id } = await parseParams(params, adminProductParamsSchema);
     const product = await prisma.product.findFirst({
       where: { id, deletedAt: null },
       select: { id: true, name: true, slug: true },
@@ -183,15 +170,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin delete product error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

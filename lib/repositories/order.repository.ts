@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import type { Cart, CartItem, CreateOrderInput, OrderDetail, OrderItem, OrderSummary } from '@/types/api';
 import type { IOrderRepository } from './interfaces';
 import { prisma } from '@/lib/prisma';
@@ -14,9 +14,18 @@ export class OrderRepository implements IOrderRepository {
       const existingOrder = await this.findByIdempotencyKey(userId, input.idempotencyKey);
 
       if (existingOrder) {
-        const requestFingerprint = this.computeFingerprint(input);
+        const cart = await this.prismaClient.cart.findUnique({
+          where: { userId },
+          include: {
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
 
-        if (existingOrder.inputFingerprint && existingOrder.inputFingerprint !== requestFingerprint) {
+        if (!this.matchesFingerprint(input, cart, existingOrder)) {
           throw new AppError(
             'Идемпотентный ключ уже использован с другими данными заказа',
             409,
@@ -28,7 +37,9 @@ export class OrderRepository implements IOrderRepository {
       }
     }
 
-    const orderId = await this.prismaClient.$transaction(async (tx) => {
+    let orderId: string;
+    try {
+      orderId = await this.prismaClient.$transaction(async (tx) => {
       const cart = await tx.cart.findUnique({
         where: { userId },
         include: {
@@ -117,10 +128,9 @@ export class OrderRepository implements IOrderRepository {
         }
       }
 
-      const inputFingerprint = input.idempotencyKey ? this.computeFingerprint(input) : null;
+      const inputFingerprint = input.idempotencyKey ? this.computeFingerprint(input, cart.items) : null;
 
-      try {
-        const order = await tx.order.create({
+      const order = await tx.order.create({
           data: {
             userId,
             idempotencyKey: input.idempotencyKey || null,
@@ -172,44 +182,43 @@ export class OrderRepository implements IOrderRepository {
         });
 
         return order.id;
-      } catch (error: any) {
-        if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
-          const winnerOrder = await tx.order.findFirst({
-            where: {
-              userId,
-              idempotencyKey: input.idempotencyKey,
-            },
-            include: {
-              promoCode: true,
-              items: {
-                include: {
-                  product: {
-                    select: {
-                      id: true,
-                      name: true,
-                      images: true,
-                    },
+      });
+    } catch (error: unknown) {
+      if (this.isIdempotencyConflict(error)) {
+        const winnerOrder = await this.prismaClient.order.findFirst({
+          where: {
+            userId,
+            idempotencyKey: input.idempotencyKey,
+          },
+          include: {
+            promoCode: true,
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    images: true,
                   },
                 },
               },
             },
-          });
+          },
+        });
 
-          if (winnerOrder) {
-            const requestFingerprint = this.computeFingerprint(input);
-            if (winnerOrder.inputFingerprint && winnerOrder.inputFingerprint !== requestFingerprint) {
-              throw new AppError(
-                'Идемпотентный ключ уже использован с другими данными заказа',
-                409,
-                'IDEMPOTENCY_KEY_CONFLICT'
-              );
-            }
-            return winnerOrder.id;
+        if (winnerOrder) {
+          if (!this.matchesFingerprint(input, null, winnerOrder)) {
+            throw new AppError(
+              'Идемпотентный ключ уже использован с другими данными заказа',
+              409,
+              'IDEMPOTENCY_KEY_CONFLICT'
+            );
           }
+          return this.formatOrderDetail(winnerOrder);
         }
-        throw error;
       }
-    });
+      throw error;
+    }
 
     const order = await this.findByIdForUser(userId, orderId);
     if (!order) {
@@ -631,13 +640,84 @@ export class OrderRepository implements IOrderRepository {
     });
   }
 
-  private computeFingerprint(input: CreateOrderInput): string {
+  private isIdempotencyConflict(error: unknown): boolean {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return false;
+    }
+    if (error.code !== 'P2002') {
+      return false;
+    }
+    if (!error.meta || typeof error.meta !== 'object' || !('target' in error.meta)) {
+      return false;
+    }
+    if (!Array.isArray(error.meta.target)) {
+      return false;
+    }
+    return error.meta.target.some((field) =>
+      typeof field === 'string' && field.includes('idempotencyKey')
+    );
+  }
+
+  private computeFingerprint(
+    input: CreateOrderInput,
+    cartItems: Array<{ productId: string; quantity: number; product: { price: Prisma.Decimal } }>
+  ): string {
+    const cartSnapshot = cartItems
+      .map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: Number(item.product.price),
+      }))
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+
     const payload = JSON.stringify({
+      recipientName: input.recipientName?.trim(),
       address: input.address?.trim(),
       phone: input.phone?.trim(),
+      comment: input.comment?.trim() || null,
       promoCode: input.promoCode?.trim() || null,
+      cart: cartSnapshot,
     });
     return createHash('sha256').update(payload).digest('hex');
+  }
+
+  private matchesFingerprint(
+    input: CreateOrderInput,
+    cart: { items: Array<{ productId: string; quantity: number; product: { price: Prisma.Decimal } }> } | null,
+    existingOrder: {
+      inputFingerprint: string | null;
+      recipientName: string;
+      address: string;
+      phone: string;
+      comment: string | null;
+      promoCode: { code: string } | null;
+      items: Array<{ productId: string; quantity: number; price: Prisma.Decimal }>;
+    }
+  ): boolean {
+    if (cart) {
+      const requestFingerprint = this.computeFingerprint(input, cart.items);
+      return existingOrder.inputFingerprint === requestFingerprint;
+    }
+
+    const orderItemsSnapshot = existingOrder.items
+      .map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: Number(item.price),
+      }))
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+
+    const requestPayload = JSON.stringify({
+      recipientName: input.recipientName?.trim(),
+      address: input.address?.trim(),
+      phone: input.phone?.trim(),
+      comment: input.comment?.trim() || null,
+      promoCode: input.promoCode?.trim() || null,
+      cart: orderItemsSnapshot,
+    });
+    const requestFingerprint = createHash('sha256').update(requestPayload).digest('hex');
+
+    return existingOrder.inputFingerprint === requestFingerprint;
   }
 
   private async findByIdempotencyKey(userId: string, idempotencyKey: string) {

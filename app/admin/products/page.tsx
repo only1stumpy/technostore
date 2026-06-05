@@ -14,16 +14,18 @@ type ProductsResponse = { success: boolean; data?: PaginatedResponse<AdminProduc
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  async function loadProducts() {
+  async function loadProducts(targetPage: number) {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/products');
+      const response = await fetch(`/api/admin/products?page=${targetPage}&limit=20`);
       const json: ProductsResponse = await response.json();
       if (!response.ok) {
         setError(json.error || 'Не удалось загрузить товары');
@@ -31,6 +33,8 @@ export default function AdminProductsPage() {
       }
       setProducts(json.data?.items ?? []);
       setTotal(json.data?.total ?? 0);
+      setTotalPages(json.data?.totalPages ?? 0);
+      setPage(targetPage);
     } catch {
       setError('Не удалось загрузить товары');
     } finally {
@@ -59,26 +63,9 @@ export default function AdminProductsPage() {
   }
 
   useEffect(() => {
-    async function fetchInitialProducts() {
-      setIsLoading(true);
-      setError('');
-      try {
-        const response = await fetch('/api/admin/products');
-        const json: ProductsResponse = await response.json();
-        if (!response.ok) {
-          setError(json.error || 'Не удалось загрузить товары');
-          return;
-        }
-        setProducts(json.data?.items ?? []);
-        setTotal(json.data?.total ?? 0);
-      } catch {
-        setError('Не удалось загрузить товары');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    void fetchInitialProducts();
+    queueMicrotask(() => {
+      void loadProducts(1);
+    });
   }, []);
 
   if (isLoading) {
@@ -98,7 +85,7 @@ export default function AdminProductsPage() {
         <Card>
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-semibold text-destructive">{error}</p>
-            <Button variant="secondary" onClick={loadProducts}>Повторить</Button>
+            <Button variant="secondary" onClick={() => loadProducts(page)}>Повторить</Button>
           </CardContent>
         </Card>
       )}
@@ -119,6 +106,13 @@ export default function AdminProductsPage() {
           </tr>
         ))}
       </DataTable>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="secondary" disabled={page === 1} onClick={() => loadProducts(page - 1)}>Назад</Button>
+          <span className="text-sm text-muted-foreground">Страница {page} из {totalPages}</span>
+          <Button variant="secondary" disabled={page === totalPages} onClick={() => loadProducts(page + 1)}>Вперед</Button>
+        </div>
+      )}
     </div>
   );
 }

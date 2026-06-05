@@ -1,15 +1,37 @@
 import { createHash } from 'crypto';
 
 export function encodeCursor(sortField: string, id: string): string {
-  return Buffer.from(`${sortField}:${id}`).toString('base64');
+  return Buffer.from(JSON.stringify({ sortField, id })).toString('base64url');
 }
 
 export function decodeCursor(cursor: string): { sortField: string; id: string } | null {
   try {
-    const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
-    const [sortField, id] = decoded.split(':');
-    if (!sortField || !id) return null;
-    return { sortField, id };
+    const decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
+
+    if (decoded.startsWith('{')) {
+      const value = JSON.parse(decoded) as unknown;
+      if (
+        value &&
+        typeof value === 'object' &&
+        'sortField' in value &&
+        typeof value.sortField === 'string' &&
+        value.sortField &&
+        'id' in value &&
+        typeof value.id === 'string' &&
+        value.id
+      ) {
+        return { sortField: value.sortField, id: value.id };
+      }
+      return null;
+    }
+
+    const separatorIndex = decoded.lastIndexOf(':');
+    if (separatorIndex < 1 || separatorIndex === decoded.length - 1) return null;
+
+    return {
+      sortField: decoded.slice(0, separatorIndex),
+      id: decoded.slice(separatorIndex + 1),
+    };
   } catch {
     return null;
   }

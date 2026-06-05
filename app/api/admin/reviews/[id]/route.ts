@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { isAppError } from '@/lib/errors';
+import { parseJson, parseParams, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { logAdminAction } from '@/lib/admin-action-log';
 import { adminReviewStatusSchema } from '@/lib/validation/admin';
 import { reviewService } from '@/lib/services/review.service';
@@ -15,16 +16,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
-    const { id } = adminReviewParamsSchema.parse(await params);
-    let body: unknown;
-
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Некорректный JSON' }, { status: 400 });
-    }
-
+    const { id } = await parseParams(params, adminReviewParamsSchema);
+    const body = await parseJson<unknown>(request);
     const input = adminReviewStatusSchema.parse(body);
     const review = await reviewService.updateReviewStatus(id, input.status);
 
@@ -41,15 +37,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: review });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin update review error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

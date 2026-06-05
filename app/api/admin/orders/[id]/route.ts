@@ -3,10 +3,16 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { NotFoundError, isAppError } from '@/lib/errors';
+import { NotFoundError } from '@/lib/errors';
+import { parseJson, parseParams, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { orderService } from '@/lib/services/order.service';
 import { adminOrderStatusSchema } from '@/lib/validation/admin';
 import { logAdminAction } from '@/lib/admin-action-log';
+
+const adminOrderParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Order id is required'),
+});
 
 function formatOrder(order: Prisma.OrderGetPayload<{
   include: {
@@ -54,7 +60,7 @@ export async function GET(
   try {
     await requireAdmin();
 
-    const { id } = await params;
+    const { id } = await parseParams(params, adminOrderParamsSchema);
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
@@ -86,12 +92,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: formatOrder(order) });
   } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin get order error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
@@ -100,10 +101,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const { id } = await params;
-    const body = await request.json();
+    const { id } = await parseParams(params, adminOrderParamsSchema);
+    const body = await parseJson<unknown>(request);
     const input = adminOrderStatusSchema.parse(body);
     const { order, previousStatus } = await orderService.updateOrderStatus(id, input.status);
     const orderOwner = await prisma.order.findUnique({
@@ -131,19 +134,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: { ...order, user } });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin update order error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

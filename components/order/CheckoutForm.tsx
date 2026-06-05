@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/Button';
@@ -34,7 +34,7 @@ type ApplyPromoCodeResponse = {
 export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', initialName = '', initialAddress = '' }: CheckoutFormProps) {
   const router = useRouter();
   const setCart = useCartStore((state) => state.setCart);
-  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => uuidv4());
+  const [idempotencyKey] = useState<string>(() => uuidv4());
   const [recipientName, setRecipientName] = useState(initialName);
   const [address, setAddress] = useState(initialAddress);
   const [phone, setPhone] = useState(initialPhone);
@@ -45,10 +45,6 @@ export function CheckoutForm({ userId, items, totalAmount, initialPhone = '', in
   const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIdempotencyKey(uuidv4());
-  }, []);
 
   const itemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = appliedPromoCode?.total ?? totalAmount;

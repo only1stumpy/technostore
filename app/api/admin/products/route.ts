@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
 import { adminPaginationSchema, adminProductSchema } from '@/lib/validation/admin';
-import { ValidationError, isAppError } from '@/lib/errors';
+import { ValidationError } from '@/lib/errors';
+import { parseJson, parseQuery, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { logAdminAction } from '@/lib/admin-action-log';
 
 function formatProduct(product: Prisma.ProductGetPayload<{ include: { category: true; brand: true } }>) {
@@ -31,10 +32,7 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
 
     const { searchParams } = new URL(request.url);
-    const pagination = adminPaginationSchema.parse({
-      page: searchParams.get('page') || undefined,
-      limit: searchParams.get('limit') || undefined,
-    });
+    const pagination = parseQuery(searchParams, adminPaginationSchema);
     const where = {
       deletedAt: null,
       category: { deletedAt: null },
@@ -65,24 +63,17 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin get products error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const body = await request.json();
+    const body = await parseJson<unknown>(request);
     const input = adminProductSchema.parse(body);
     const [category, brand] = await Promise.all([
       prisma.category.findFirst({ where: { id: input.categoryId, deletedAt: null }, select: { id: true } }),
@@ -129,19 +120,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: formatProduct(product) }, { status: 201 });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Товар с таким slug уже существует' }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin create product error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

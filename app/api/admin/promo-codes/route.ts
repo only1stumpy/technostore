@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { logAdminAction } from '@/lib/admin-action-log';
-import { isAppError } from '@/lib/errors';
+import { parseJson, parseQuery, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { adminPaginationSchema, adminPromoCodeSchema } from '@/lib/validation/admin';
 import { promoCodeService } from '@/lib/services/promo-code.service';
 
@@ -10,38 +10,21 @@ export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
-    const filters = adminPaginationSchema.parse({
-      page: request.nextUrl.searchParams.get('page') || undefined,
-      limit: request.nextUrl.searchParams.get('limit') || undefined,
-    });
+    const filters = parseQuery(request.nextUrl.searchParams, adminPaginationSchema);
     const promoCodes = await promoCodeService.getAdminPromoCodes(filters);
 
     return NextResponse.json({ success: true, data: promoCodes });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin get promo codes error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
-    let body: unknown;
-
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: 'Некорректный JSON' }, { status: 400 });
-    }
-
+    const body = await parseJson<unknown>(request);
     const input = adminPromoCodeSchema.parse(body);
     const promoCode = await promoCodeService.createPromoCode(input);
 
@@ -59,15 +42,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: promoCode }, { status: 201 });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin create promo code error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

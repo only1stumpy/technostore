@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
-import { NotFoundError, isAppError } from '@/lib/errors';
+import { NotFoundError, ValidationError } from '@/lib/errors';
+import { parseJson, parseParams, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { adminBrandSchema } from '@/lib/validation/admin';
 import { logAdminAction } from '@/lib/admin-action-log';
+
+const adminBrandParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Brand id is required'),
+});
 
 async function invalidateBrandCache() {
   await deleteCacheKey(CACHE_KEYS.brands);
@@ -19,10 +24,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const { id } = await params;
-    const body = await request.json();
+    const { id } = await parseParams(params, adminBrandParamsSchema);
+    const body = await parseJson<unknown>(request);
     const input = adminBrandSchema.parse(body);
     const existingBrand = await prisma.brand.findFirst({
       where: { id, deletedAt: null },
@@ -82,36 +89,20 @@ export async function PATCH(
       },
     });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        return NextResponse.json({ error: 'Бренд с таким slug уже существует' }, { status: 400 });
-      }
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'Бренд не найден' }, { status: 404 });
-      }
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin update brand error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const { id } = await params;
+    const { id } = await parseParams(params, adminBrandParamsSchema);
     const brand = await prisma.brand.findFirst({
       where: { id, deletedAt: null },
       select: { id: true, name: true, slug: true },
@@ -126,10 +117,7 @@ export async function DELETE(
     });
 
     if (activeProductsCount > 0) {
-      return NextResponse.json(
-        { error: 'Сначала переместите или удалите товары этого бренда' },
-        { status: 400 }
-      );
+      throw new ValidationError('Сначала переместите или удалите товары этого бренда');
     }
 
     await prisma.brand.update({
@@ -150,15 +138,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Бренд не найден' }, { status: 404 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin delete brand error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

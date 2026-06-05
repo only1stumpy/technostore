@@ -1,37 +1,32 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
-import { isAppError, UnauthorizedError } from '@/lib/errors';
+import { UnauthorizedError } from '@/lib/errors';
+import { parseParams, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { orderService } from '@/lib/services/order.service';
 
 const orderParamsSchema = z.object({
-  id: z.string().trim().min(1),
+  id: z.string().trim().min(1, 'Order id is required'),
 });
 
 export async function POST(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    validateOrigin(request);
+
     const user = await getCurrentUser();
     if (!user) {
       throw new UnauthorizedError('User not authenticated');
     }
 
-    const { id } = orderParamsSchema.parse(await params);
+    const { id } = await parseParams(params, orderParamsSchema);
     const cart = await orderService.repeatOrder(user.userId, id);
 
     return NextResponse.json({ success: true, data: cart });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Repeat order error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

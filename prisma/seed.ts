@@ -5,7 +5,16 @@ import { prisma } from '../lib/prisma'
 // Формат: { name: 'Название категории', slug: 'url-slug' }
 // Пример: { name: 'Ноутбуки', slug: 'laptops' }
 const categoriesData = [
-  { name: 'Смартфоны', slug: 'smartphones' },
+  { name: 'Блоки питания', slug: 'bloki-pitaniya' },
+  { name: 'Видеокарты', slug: 'videokarty' },
+  { name: 'Жесткие диски (HDD-накопители)', slug: 'zhestkie-diski-hdd-nakopiteli' },
+  { name: 'Корпуса', slug: 'korpusa' },
+  { name: 'Материнские платы', slug: 'materinskie-platy' },
+  { name: 'Накопитель (ssd)', slug: 'nakopitel-ssd' },
+  { name: 'Оперативная память', slug: 'operativnaya-pamyat' },
+  { name: 'Процессоры', slug: 'processory' },
+  { name: 'Системы охлаждения', slug: 'sistemy-ohlazhdeniya' },
+  { name: 'Термопасты', slug: 'termopasty' },
 ]
 
 // БРЕНДЫ
@@ -13,7 +22,7 @@ const categoriesData = [
 // logo — можно использовать любую ссылку (https://... или /logos/...)
 // Пример: { name: 'Apple', slug: 'apple', logo: 'https://logo.clearbit.com/apple.com' }
 const brandsData = [
-  { name: 'Apple', slug: 'apple', logo: 'https://logo.clearbit.com/apple.com' },
+  { name: '', slug: '', logo: '' },
 ]
 
 // ИЗОБРАЖЕНИЯ ТОВАРОВ (опционально)
@@ -24,20 +33,13 @@ const brandsData = [
 //   'https://example.com/iphone-1.jpg',
 //   'https://example.com/iphone-2.jpg',
 // ],
-const productImagesBySlug: Record<string, string[]> = {
- 'iphone-15': [
-   'https://example.com/iphone-1.jpg',
-   'https://example.com/iphone-2.jpg',
- ],
-}
+const productImagesBySlug: Record<string, string[]> = {}
 
 // ИЗОБРАЖЕНИЯ КАТЕГОРИЙ (fallback для товаров без своих изображений)
 // Ключ — slug категории, значение — массив URL
 // Пример:
 // smartphones: ['https://example.com/category-phone.jpg'],
-const categoryImagesBySlug: Record<string, string[]> = {
-  smartphones: ['https://example.com/category-phone.jpg'],
-}
+const categoryImagesBySlug: Record<string, string[]> = {}
 
 // ТОВАРЫ
 // Формат массива (порядок важен!):
@@ -51,14 +53,16 @@ const categoryImagesBySlug: Record<string, string[]> = {
 //   'Память': '128 ГБ',
 //   'Камера': '48 МП',
 // }],
-const productsData = [
-  ['iPhone 15', 'iphone-15', 'Флагманский смартфон Apple', 8200, 50, 'smartphones', 'apple', {
-   'Экран': '6.1″ Super Retina XDR',
-   'Процессор': 'A16 Bionic',
-   'Память': '128 ГБ',
-   'Камера': '48 МП',
- }],
-] as const
+const productsData: Array<[
+  string,
+  string,
+  string,
+  number,
+  number,
+  string,
+  string,
+  Record<string, string>,
+]> = []
 
 export async function seedDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -223,11 +227,11 @@ export async function seedDatabase() {
   })
 
   const reviewsData = [
-//    ['macbook-air-m2', 0, 5, 'Очень легкий и тихий ноутбук. Для учебы, браузера и работы с документами хватает с большим запасом.'],
-      ['iphone-15', 1, 5, 'Камера и экран отличные, батареи спокойно хватает на день активного использования.'],
-    //['samsung-galaxy-s24', 2, 4, 'Компактный корпус и быстрый интерфейс. Хотелось бы зарядку в комплекте, но сам телефон понравился.'],
-    //['airpods-pro-2', 0, 5, 'Шумоподавление заметно лучше старых наушников, удобно использовать в дороге и офисе.'],
-    //['dell-ultrasharp-u2723qe', 1, 4, 'Хороший монитор для работы с текстом и цветом, USB-C хаб сильно упрощает подключение ноутбука.'],
+    ['macbook-air-m2', 0, 5, 'Очень легкий и тихий ноутбук. Для учебы, браузера и работы с документами хватает с большим запасом.'],
+    ['iphone-15', 1, 5, 'Камера и экран отличные, батареи спокойно хватает на день активного использования.'],
+    ['samsung-galaxy-s24', 2, 4, 'Компактный корпус и быстрый интерфейс. Хотелось бы зарядку в комплекте, но сам телефон понравился.'],
+    ['airpods-pro-2', 0, 5, 'Шумоподавление заметно лучше старых наушников, удобно использовать в дороге и офисе.'],
+    ['dell-ultrasharp-u2723qe', 1, 4, 'Хороший монитор для работы с текстом и цветом, USB-C хаб сильно упрощает подключение ноутбука.'],
   ] as const
 
   for (const [productSlug, userIndex, rating, text] of reviewsData) {

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { ProductFiltersSchema } from '@/lib/validation/catalog';
 import { getCached, CACHE_KEYS, CACHE_TTL } from '@/lib/cache';
 import { hashFilters } from '@/lib/pagination';
 import type { ProductCard, CursorPaginatedResponse } from '@/types/api';
 import { productRepository } from '@/lib/repositories/product.repository';
 import { InvalidCursorError } from '@/lib/errors';
+import { errorResponse } from '@/lib/api/handlers';
 
 function parseSpecFilters(searchParams: URLSearchParams) {
   const specs: Record<string, string[]> = {};
@@ -59,24 +59,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Неверные параметры запроса', details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    if (error instanceof InvalidCursorError) {
-      return NextResponse.json(
-        { error: 'Неверный курсор пагинации' },
-        { status: 400 }
-      );
-    }
-
-    console.error('Get products error:', error);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }

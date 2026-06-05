@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { deleteCacheKey, invalidateCache, CACHE_KEYS } from '@/lib/cache';
-import { isAppError } from '@/lib/errors';
+import { parseJson, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { adminCategorySchema } from '@/lib/validation/admin';
 import { logAdminAction } from '@/lib/admin-action-log';
 
@@ -44,20 +44,17 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: categories.map(formatCategory) });
   } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin get categories error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    validateOrigin(request);
+
     const admin = await requireAdmin();
 
-    const body = await request.json();
+    const body = await parseJson<unknown>(request);
     const input = adminCategorySchema.parse(body);
     const category = await prisma.category.create({
       data: {
@@ -91,19 +88,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: formatCategory(category) }, { status: 201 });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Категория с таким slug уже существует' }, { status: 400 });
-    }
-
-    if (isAppError(error)) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
-    }
-
-    console.error('Admin create category error:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return errorResponse(error);
   }
 }

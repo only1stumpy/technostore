@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
-import { isAppError, UnauthorizedError } from '@/lib/errors';
+import { UnauthorizedError } from '@/lib/errors';
+import { parseJson, errorResponse } from '@/lib/api/handlers';
+import { validateOrigin } from '@/lib/api/security';
 import { orderService } from '@/lib/services/order.service';
 import { normalizePhone, validatePhone } from '@/lib/utils';
 import { applyPromoCodeSchema } from '@/lib/validation/admin';
@@ -26,29 +28,20 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: orders });
   } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-
-    console.error('Get orders error:', error);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    validateOrigin(request);
+
     const user = await getCurrentUser();
     if (!user) {
       throw new UnauthorizedError('User not authenticated');
     }
 
-    const body = await request.json();
+    const body = await parseJson<Record<string, unknown>>(request);
     const headerKey = request.headers.get('Idempotency-Key');
 
     const inputWithKey = {
@@ -61,25 +54,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: order }, { status: 201 });
   } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      );
-    }
-
-    if (isAppError(error)) {
-      const statusCode = error.code === 'IDEMPOTENCY_KEY_CONFLICT' ? 409 : error.statusCode;
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: statusCode }
-      );
-    }
-
-    console.error('Create order error:', error);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }

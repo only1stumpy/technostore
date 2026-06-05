@@ -7,7 +7,7 @@ import type { ApiErrorResponse } from './types';
 export async function parseJson<T>(request: NextRequest): Promise<T> {
   try {
     return await request.json();
-  } catch (error) {
+  } catch {
     throw new ValidationError('Invalid JSON format', {
       json: ['Request body must be valid JSON'],
     });

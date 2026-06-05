@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
-import { isAppError, NotFoundError, UnauthorizedError } from '@/lib/errors';
+import { NotFoundError, UnauthorizedError } from '@/lib/errors';
+import { parseParams, errorResponse } from '@/lib/api/handlers';
 import { orderService } from '@/lib/services/order.service';
+
+const orderParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Order id is required'),
+});
 
 export async function GET(
   _request: Request,
@@ -13,7 +19,7 @@ export async function GET(
       throw new UnauthorizedError('User not authenticated');
     }
 
-    const { id } = await params;
+    const { id } = await parseParams(params, orderParamsSchema);
     const order = await orderService.getOrder(user.userId, id);
 
     if (!order) {
@@ -22,17 +28,6 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: order });
   } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-
-    console.error('Get order error:', error);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 }
